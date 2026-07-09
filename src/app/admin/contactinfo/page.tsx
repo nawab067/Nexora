@@ -24,12 +24,10 @@ export default function ContactInfoPage() {
     const [loading, setLoading] = useState(true);
     const [userid, setUserid] = useState<string | null>(null);
     const [contacts, setContacts] = useState<Contact[]>([]);
-
-    // search & filter
     const [search, setSearch] = useState('');
     const [activeTab, setActiveTab] = useState<'all' | 'my' | 'team'>('all');
 
-    // pagination
+
     const [page, setPage] = useState(1);
 
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
