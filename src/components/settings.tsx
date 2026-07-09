@@ -102,7 +102,7 @@ function ThemeCard({
                     value === "light" && "bg-white border-slate-200",
                     value === "dark" && "bg-slate-900 border-slate-700",
                     value === "system" &&
-                        "bg-gradient-to-br from-white via-white to-slate-900 border-slate-300"
+                    "bg-gradient-to-br from-white via-white to-slate-900 border-slate-300"
                 )}
             >
                 <Icon
@@ -375,7 +375,7 @@ function AccountUsersPanel({
                     </Button>
                 </div>
             </div>
-             <AlertDialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+            <AlertDialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
                 <AlertDialogContent className="rounded-xl border-slate-200 dark:border-slate-800 sm:max-w-md">
                     <AlertDialogHeader>
                         <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center mb-2">
@@ -599,18 +599,16 @@ export default function Settings({
                                     ondelete={ondelete}
                                 />
                             )}
-
-                            {/* Placeholder states for the other two nav items */}
                             {(activeSection === "profile" ||
                                 activeSection === "notifications") && (
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 text-center">
-                                    <p className="text-sm text-slate-400 dark:text-slate-500">
-                                        {activeSection === "profile"
-                                            ? "Profile settings coming soon."
-                                            : "Notification settings coming soon."}
-                                    </p>
-                                </div>
-                            )}
+                                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 text-center">
+                                        <p className="text-sm text-slate-400 dark:text-slate-500">
+                                            {activeSection === "profile"
+                                                ? "Profile settings coming soon."
+                                                : "Notification settings coming soon."}
+                                        </p>
+                                    </div>
+                                )}
                         </div>
                     </div>
                 </div>

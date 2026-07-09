@@ -113,6 +113,7 @@ export default function CustomerInfoContainer() {
             recipientEmail: customer.email ?? "",
             recipientName: customer.name,
         });
+        console.log("Clicked customer:", customer);
 
         try {
             const response = await axios.post(

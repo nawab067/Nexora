@@ -321,8 +321,8 @@ export default function CustomerInfoView({
                     <StatCard
                         icon={DollarSign}
                         label="Pipeline Value"
-                        value="$4.2M"
-                        sub="Goal: $5M this quarter"
+                        value="$ 0"
+                        sub="Goal: $0 this quarter"
                         subColor="text-muted-foreground"
                         iconBg="bg-emerald-500/10"
                         iconColor="text-emerald-600 dark:text-emerald-400"
@@ -330,7 +330,7 @@ export default function CustomerInfoView({
                     <StatCard
                         icon={TrendingUp}
                         label="Conversion Rate"
-                        value="24.8%"
+                        value="0%"
                         sub="Nurture time: 14 days avg"
                         subColor="text-muted-foreground"
                         iconBg="bg-violet-500/10"
@@ -339,7 +339,7 @@ export default function CustomerInfoView({
                     <StatCard
                         icon={BarChart2}
                         label="Win Rate"
-                        value="62%"
+                        value="0%"
                         sub="+5% vs Q3 baseline"
                         iconBg="bg-indigo-600"
                         iconColor="text-white"

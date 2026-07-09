@@ -37,7 +37,6 @@ import {
 interface CustomerFormData {
     name: string;
     email: string;
-    phone: string;
     address: string;
     phonenum: string;
     Designation: string;
@@ -50,9 +49,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 const EMPTY_FORM: CustomerFormData = {
     name: '',
     email: '',
-    phone: '',
-    address: '',
     phonenum: '',
+    address: '',
     Designation: '',
 };
 
@@ -194,7 +192,6 @@ export default function CustomerForm({ id }: { id?: string }) {
                 setForm({
                     name: data.name ?? '',
                     email: data.email ?? '',
-                    phone: data.phone ?? '',
                     address: data.address ?? '',
                     phonenum: data.phonenum ?? '',
                     Designation: data.Designation ?? '',
@@ -289,9 +286,11 @@ export default function CustomerForm({ id }: { id?: string }) {
             }
 
             router.push('/admin/contactinfo');
-        } catch (error) {
-            console.error(error);
-        } finally {
+        } catch (error: any) {
+    console.log("Status:", error.response?.status);
+    console.log("Response:", error.response?.data);
+    console.log("Error:", error);
+} finally {
             setSaving(false);
         }
     };

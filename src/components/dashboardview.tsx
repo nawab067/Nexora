@@ -255,13 +255,13 @@ export default function AdminDashboardView({ username, leadcount }: AdminDashboa
           <StatCard icon={BarChart3} label="Projected Revenue" value="$1.2M" change="+2.4%" />
         </div>
 
-        {/* Chart + Activity */}
+      
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div className="xl:col-span-2"><RevenueChart /></div>
           <div><RecentActivity /></div>
         </div>
 
-        {/* Tasks + AI */}
+       
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div className="xl:col-span-2"><UpcomingTasks /></div>
           <div><AISalesAssistant /></div>

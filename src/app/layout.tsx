@@ -5,8 +5,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Watch Hub",
-  description: "Customer Management System",
+  title: "Nexora",
+  description: "Nexora Management System",
 };
 
 const geistSans = Geist({
