@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function SignupCallback() {
   const router = useRouter();
@@ -64,5 +66,21 @@ export default function SignupCallback() {
     handleSignup();
   }, [router]);
 
-  return <p>Signing you up...</p>;
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <Card className="w-full max-w-sm rounded-xl border-none shadow-sm">
+        <CardContent className="flex flex-col items-center gap-4 py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+          <div className="text-center">
+            <p className="text-sm font-medium text-slate-900">
+              Creating your account
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              Just a moment while we finish setting things up…
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

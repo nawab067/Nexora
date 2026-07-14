@@ -1,8 +1,9 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Trash2, Mail, Clock, Bell, HelpCircle, Settings, Search, RefreshCw, Inbox, AlertTriangle } from "lucide-react";
+import { Trash2, Mail, Clock, Bell, HelpCircle, Settings, Search, RefreshCw, Inbox, AlertTriangle, X, CheckSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Dialog,
     DialogContent,
@@ -25,7 +26,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import React, { useRef, useState } from "react";
 import axios from "axios";
 
 // ─── Data shape (matches your /email-replies/user/:id response) ───────────────
@@ -45,8 +46,9 @@ interface RemindersViewProps {
     loading?: boolean;
     onSync?: () => void;
     onReplyClick?: (reply: EmailReply) => void;
-    onDeleted?: (id: string) => void; // optional: let parent remove it from state after successful delete
-}
+    onDeleted?: (id: string) => void; // single delete
+    onBulkDeleted?: (ids: string[]) => void; // NEW: bulk delete
+} 
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function getInitials(email: string) {
@@ -89,21 +91,86 @@ function timeAgo(dateString: string) {
     });
 }
 
+const LONG_PRESS_MS = 500;
+
 // ─── Reminder card ──────────────────────────────────────────────────────────────
 export function ReminderCard({
     reply,
     onClick,
+    selectionMode = false,
+    selected = false,
+    onLongPress,
+    onToggleSelect,
 }: {
     reply: EmailReply;
     onClick: () => void;
+    selectionMode?: boolean;
+    selected?: boolean;
+    onLongPress?: () => void;
+    onToggleSelect?: () => void;
 }) {
     const color = AVATAR_COLORS[hashString(reply.customer_email) % AVATAR_COLORS.length];
+    const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const firedLongPress = useRef(false);
+
+    const startPress = () => {
+        firedLongPress.current = false;
+        pressTimer.current = setTimeout(() => {
+            firedLongPress.current = true;
+            onLongPress?.();
+        }, LONG_PRESS_MS);
+    };
+
+    const clearPress = () => {
+        if (pressTimer.current) {
+            clearTimeout(pressTimer.current);
+            pressTimer.current = null;
+        }
+    };
+
+    const handleClick = () => {
+        // Swallow the click that follows a long-press fire
+        if (firedLongPress.current) {
+            firedLongPress.current = false;
+            return;
+        }
+        if (selectionMode) {
+            onToggleSelect?.();
+        } else {
+            onClick();
+        }
+    };
 
     return (
         <div
-            onClick={onClick}
-            className="group flex gap-3 p-4 rounded-xl border border-border bg-card hover:bg-muted/40 transition-colors cursor-pointer"
+            onPointerDown={startPress}
+            onPointerUp={clearPress}
+            onPointerLeave={clearPress}
+            onPointerCancel={clearPress}
+            onContextMenu={(e) => {
+                // Right-click on desktop also enters selection mode
+                e.preventDefault();
+                if (!selectionMode) onLongPress?.();
+            }}
+            onClick={handleClick}
+            className={cn(
+                "group flex gap-3 p-4 rounded-xl border transition-colors cursor-pointer select-none",
+                selected
+                    ? "border-indigo-500/40 bg-indigo-500/5"
+                    : "border-border bg-card hover:bg-muted/40"
+            )}
         >
+            {selectionMode && (
+                <div className="flex items-center shrink-0">
+                    <Checkbox
+                        checked={selected}
+                        onCheckedChange={() => onToggleSelect?.()}
+                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        className="h-4.5 w-4.5"
+                    />
+                </div>
+            )}
+
             <div className={cn(
                 "h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
                 color.bg, color.text
@@ -117,9 +184,10 @@ export function ReminderCard({
                         <p className="text-sm font-semibold text-foreground truncate">
                             {reply.subject}
                         </p>
+                        
                         <a
                             href={`mailto:${reply.customer_email}`}
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
                             className="text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                         >
                             {reply.customer_email}
@@ -181,6 +249,8 @@ export default function RemindersView({
     onSync,
     onReplyClick,
     onDeleted,
+    onBulkDeleted,
+    
 }: RemindersViewProps) {
     const isDisconnected = reminders === undefined;
     const safeReminders = reminders ?? [];
@@ -188,6 +258,33 @@ export default function RemindersView({
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
+
+    // ── Multi-select state ──
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
+
+    const enterSelectionMode = (id: string) => {
+        setSelectionMode(true);
+        setSelectedIds(new Set([id]));
+    };
+
+    const toggleSelected = (id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            // Auto-exit selection mode if nothing is left selected
+            if (next.size === 0) setSelectionMode(false);
+            return next;
+        });
+    };
+
+    const exitSelectionMode = () => {
+        setSelectionMode(false);
+        setSelectedIds(new Set());
+    };
 
     const handleDelete = async () => {
         if (!selectedReply) return;
@@ -201,38 +298,99 @@ export default function RemindersView({
             console.error(err);
         } finally {
             setDeleting(false);
+            window.location.reload(); // Refresh the page after deletion
         }
     };
 
+
+
+    const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    try {
+        const results = await Promise.allSettled(
+            ids.map((id) => axios.delete(`${baseurl}/delete/${id}`))
+        );
+        const succeededIds = ids.filter((_, i) => results[i].status === "fulfilled");
+        if (succeededIds.length > 0) {
+            onBulkDeleted?.(succeededIds);
+        }
+    } finally {
+        setBulkDeleting(false);
+        setBulkDeleteConfirmOpen(false);
+        exitSelectionMode();
+        window.location.reload(); // Refresh the page after bulk deletion
+    }
+};
     return (
         <>
             {/* ── Navbar ── */}
             <header className="sticky top-0 z-10 h-14 bg-background border-b border-border flex items-center px-4 gap-3 shrink-0">
-                <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-                <Separator orientation="vertical" className="h-5" />
-                <div className="flex items-center gap-2 flex-1 max-w-sm">
-                    <Search className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <input
-                        type="text"
-                        placeholder="Search across CRM..."
-                        className="w-full text-sm text-foreground placeholder:text-muted-foreground bg-transparent outline-none"
-                    />
-                </div>
-                <div className="flex items-center gap-1 ml-auto">
-                    <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-                        <Bell className="w-4 h-4" />
-                    </button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-                        <HelpCircle className="w-4 h-4" />
-                    </button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-                        <Settings className="w-4 h-4" />
-                    </button>
-                    <Separator orientation="vertical" className="h-5 mx-2" />
-                    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                        AR
-                    </div>
-                </div>
+                {selectionMode ? (
+                    <>
+                        <button
+                            onClick={exitSelectionMode}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                        <span className="text-sm font-semibold text-foreground">
+                            {selectedIds.size} selected
+                        </span>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                                setSelectedIds(new Set(safeReminders.map((r) => r._id)));
+                            }}
+                            className="h-8 text-xs gap-1.5 text-muted-foreground"
+                        >
+                            <CheckSquare className="w-3.5 h-3.5" />
+                            Select all
+                        </Button>
+                        <div className="ml-auto">
+                            <Button
+                                size="sm"
+                                variant="destructive"
+                                disabled={selectedIds.size === 0}
+                                onClick={() => setBulkDeleteConfirmOpen(true)}
+                                className="h-9 text-sm gap-1.5 rounded-lg px-4"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                            </Button>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+                        <Separator orientation="vertical" className="h-5" />
+                        <div className="flex items-center gap-2 flex-1 max-w-sm">
+                            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <input
+                                type="text"
+                                placeholder="Search across CRM..."
+                                className="w-full text-sm text-foreground placeholder:text-muted-foreground bg-transparent outline-none"
+                            />
+                        </div>
+                        <div className="flex items-center gap-1 ml-auto">
+                            <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                                <Bell className="w-4 h-4" />
+                            </button>
+                            <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                                <HelpCircle className="w-4 h-4" />
+                            </button>
+                            <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                                <Settings className="w-4 h-4" />
+                            </button>
+                            <Separator orientation="vertical" className="h-5 mx-2" />
+                            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                AR
+                            </div>
+                        </div>
+                    </>
+                )}
             </header>
 
             {/* ── Page body ── */}
@@ -243,19 +401,23 @@ export default function RemindersView({
                             Reminders & Notifications
                         </h1>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                            Customer replies that need your attention.
+                            {selectionMode
+                                ? "Tap cards to select more, or delete your selection."
+                                : "Customer replies that need your attention."}
                         </p>
                     </div>
 
-                    <Button
-                        size="sm"
-                        onClick={onSync}
-                        disabled={loading || !onSync}
-                        className="h-9 text-sm gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 disabled:opacity-70"
-                    >
-                        <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-                        {loading ? "Syncing..." : "Sync"}
-                    </Button>
+                    {!selectionMode && (
+                        <Button
+                            size="sm"
+                            onClick={onSync}
+                            disabled={loading || !onSync}
+                            className="h-9 text-sm gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 disabled:opacity-70"
+                        >
+                            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                            {loading ? "Syncing..." : "Sync"}
+                        </Button>
+                    )}
                 </div>
 
                 {isDisconnected && <NotConnectedAlert />}
@@ -303,6 +465,10 @@ export default function RemindersView({
                         <ReminderCard
                             key={reply._id}
                             reply={reply}
+                            selectionMode={selectionMode}
+                            selected={selectedIds.has(reply._id)}
+                            onLongPress={() => enterSelectionMode(reply._id)}
+                            onToggleSelect={() => toggleSelected(reply._id)}
                             onClick={() => {
                                 setSelectedReply(reply);
                                 onReplyClick?.(reply);
@@ -324,7 +490,6 @@ export default function RemindersView({
                         const color = AVATAR_COLORS[hashString(selectedReply.customer_email) % AVATAR_COLORS.length];
                         return (
                             <>
-                                {/* Header */}
                                 <DialogHeader className="px-6 pt-6 pb-4 space-y-0">
                                     <div className="flex items-start gap-3 w-full">
                                         <div className={cn(
@@ -365,7 +530,6 @@ export default function RemindersView({
                                                         </span>
                                                     </div>
 
-                                                    {/* Trash button — right next to the timestamp */}
                                                     <Button
                                                         type="button"
                                                         variant="ghost"
@@ -383,7 +547,6 @@ export default function RemindersView({
 
                                 <Separator />
 
-                                {/* Message body */}
                                 <div className="px-6 py-4">
                                     <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
                                         Message
@@ -397,7 +560,6 @@ export default function RemindersView({
 
                                 <Separator />
 
-                                {/* Footer actions */}
                                 <div className="px-6 py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
                                     <Button
                                         variant="outline"
@@ -421,7 +583,7 @@ export default function RemindersView({
                 </DialogContent>
             </Dialog>
 
-            {/* ── Delete confirmation ── */}
+            {/* ── Single delete confirmation ── */}
             <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
                 <AlertDialogContent className="rounded-xl">
                     <AlertDialogHeader>
@@ -457,6 +619,38 @@ export default function RemindersView({
                             className="h-9 text-sm rounded-lg bg-rose-600 hover:bg-rose-500 text-white"
                         >
                             {deleting ? "Deleting..." : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* ── Bulk delete confirmation ── */}
+            <AlertDialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+                <AlertDialogContent className="rounded-xl">
+                    <AlertDialogHeader>
+                        <div className="w-11 h-11 rounded-full bg-rose-500/10 flex items-center justify-center mb-2">
+                            <Trash2 className="w-5 h-5 text-rose-600" />
+                        </div>
+                        <AlertDialogTitle className="text-base font-semibold">
+                            Delete {selectedIds.size} reminder{selectedIds.size !== 1 ? "s" : ""}?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm text-muted-foreground">
+                            This will permanently remove the selected replies. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="h-9 text-sm rounded-lg" disabled={bulkDeleting}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleBulkDelete();
+                            }}
+                            disabled={bulkDeleting}
+                            className="h-9 text-sm rounded-lg bg-rose-600 hover:bg-rose-500 text-white"
+                        >
+                            {bulkDeleting ? "Deleting..." : "Delete"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Callback() {
   const router = useRouter();
@@ -37,19 +39,19 @@ export default function Callback() {
         console.log("Google Login Response:", result);
 
         if (!result.success) {
-  alert(result.message);
-  router.replace("/auth/signup");
-  return;
-}
+          alert(result.message);
+          router.replace("/auth/signup");
+          return;
+        }
 
-localStorage.setItem("token", result.token);
+        localStorage.setItem("token", result.token);
 
-localStorage.setItem(
-  "user",
-  JSON.stringify(result.user)
-);
+        localStorage.setItem(
+          "user",
+          JSON.stringify(result.user)
+        );
 
-router.replace("/admin/dashboard");
+        router.replace("/admin/dashboard");
 
       } catch (err) {
         console.error(err);
@@ -60,5 +62,21 @@ router.replace("/admin/dashboard");
     handleAuth();
   }, [router]);
 
-  return <p>Logging you in...</p>;
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <Card className="w-full max-w-sm rounded-xl border-none shadow-sm">
+        <CardContent className="flex flex-col items-center gap-4 py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <div className="text-center">
+            <p className="text-sm font-medium text-slate-900">
+              Signing you in
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              Just a moment while we connect your account…
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

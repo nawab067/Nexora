@@ -112,6 +112,16 @@ const handleReplyClick = async (reply: EmailReply) => {
     }
 };
 
+const handlealldelete = async () => {
+    if (!userid) return;
+    try {
+        await axios.delete(`${baseurl}/delete_all/${userid}`);
+        setReminders([]);
+    } catch (err) {
+        console.error(err);
+    }
+};
+
 
     return (
         <div className="p-4">
@@ -120,6 +130,7 @@ const handleReplyClick = async (reply: EmailReply) => {
                 loading={loading || syncing}
                 onSync={syncReminders}
                 onReplyClick={handleReplyClick}
+               
             />
 
             {syncError && (
