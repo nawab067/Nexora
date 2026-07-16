@@ -1,8 +1,21 @@
 'use client';
 
 import { Badge } from "@/components/ui/badge";
-import {  BarChart, Bar,  YAxis,  } from "recharts";
+import { BarChart, Bar, YAxis, } from "recharts";
 import { Button } from "@/components/ui/button";
+import { Brain, ChevronDown } from "lucide-react";
+import { useRef } from "react";
+import * as htmlToImage from "html-to-image";
+import jsPDF from "jspdf";
+
+import html2canvas from "html2canvas";
+import * as XLSX from "xlsx";
+
+import { saveAs } from "file-saver";
+
+
+import { Progress } from "@/components/ui/progress";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartConfig,
@@ -50,13 +63,35 @@ import {
   Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMemo, useState } from "react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+
+
+export interface Analytics {
+  label: string;
+  count: number;
+  percentage: number;
+}
 
 interface EmailAnalytics {
   label: string;
   sent: number;
   replies: number;
   ignored: number;
+}
+
+interface LeadAnalytics {
+  label: string;
+  value: number;
+  count: number;
+  color: string;
+}
+
+interface AIreply {
+  label: string;
+  value: number;
+  color?: string;
 }
 
 interface LeadData {
@@ -66,11 +101,18 @@ interface LeadData {
   status: string;
   replies?: number;
   score?: number;
+
 }
 
 interface MonthlyLead {
   month: string;
   leads: number;
+}
+interface AIPredictionType {
+  predicted_leads: number;
+  conversion_rate: string;
+  confidence: string;
+  prediction: string;
 }
 
 interface ReportsPageProps {
@@ -81,43 +123,18 @@ interface ReportsPageProps {
   monthlyleads: MonthlyLead[];
   emailanalytics: EmailAnalytics[];
   leadsdata: LeadData[];
+  leadanalytics: LeadAnalytics[];
+  leadpipeline: Analytics[];
+  AIReply: AIreply[];
+  aiInsights: string;
+  aiRecommendations: string[];
+  aiprediction: AIPredictionType;
 }
 
 
 
 
-const pipelineStages = [
-  { label: "New", value: 1284, pct: 100, color: "bg-indigo-600" },
-  { label: "Contacted", value: 940, pct: 73, color: "bg-indigo-500" },
-  { label: "Interested", value: 610, pct: 47, color: "bg-violet-500" },
-  { label: "Customer", value: 312, pct: 24, color: "bg-emerald-500" },
-  { label: "Closed", value: 198, pct: 15, color: "bg-emerald-600" },
-];
 
-
-
-const replySentiment = [
-  { label: "Positive", value: 58, color: "#4f46e5" },
-  { label: "Neutral", value: 30, color: "#f59e0b" },
-  { label: "Negative", value: 12, color: "#f43f5e" },
-];
-
-const leadSource = [
-  { label: "LinkedIn", value: 38, color: "#4f46e5", icon: Users },
-  { label: "Facebook", value: 22, color: "#0ea5e9", icon: Users },
-  { label: "Website", value: 28, color: "#10b981", icon: Globe },
-  { label: "Referral", value: 12, color: "#f59e0b", icon: Share2 },
-];
-
-
-
-const activityTimeline = [
-  { icon: Mail, color: "text-blue-500 bg-blue-500/10", title: "Weekly report generated", time: "Today, 9:00 AM" },
-  { icon: CheckCircle2, color: "text-emerald-500 bg-emerald-500/10", title: "12 leads moved to Qualified", time: "Yesterday, 4:15 PM" },
-  { icon: UserPlus, color: "text-violet-500 bg-violet-500/10", title: "28 new leads imported", time: "Yesterday, 11:02 AM" },
-  { icon: Phone, color: "text-rose-500 bg-rose-500/10", title: "6 follow-up calls logged", time: "2 days ago" },
-  { icon: Sparkles, color: "text-indigo-500 bg-indigo-500/10", title: "AI email campaign completed", time: "3 days ago" },
-];
 
 type StatusType = "NEW" | "CONTACTED" | "QUALIFIED" | "LOST" | "WON";
 const STATUS_STYLES: Record<StatusType, string> = {
@@ -250,26 +267,37 @@ function LeadAnalyticsChart({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Pipeline — funnel chart
-───────────────────────────────────────────────────────────────────────── */
+const stageColors: Record<string, string> = {
+  New: "bg-indigo-600",
+  Contacted: "bg-violet-500",
+  Qualified: "bg-blue-500",
+  Lost: "bg-red-500",
+  Won: "bg-green-500",
+};
 
-function PipelineFunnel() {
+function PipelineFunnel({
+  data,
+}: {
+  data: Analytics[];
+}) {
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
       <CardHeader className="pb-2 px-5 pt-5">
         <CardTitle className="text-base font-semibold text-foreground">Pipeline</CardTitle>
       </CardHeader>
       <CardContent className="px-5 pb-5 space-y-3">
-        {pipelineStages.map((s) => (
-          <div key={s.label} className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground font-medium w-20 shrink-0">{s.label}</span>
+        {data.map((stage) => (
+          <div key={stage.label} className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground font-medium w-20 shrink-0">{stage.label}</span>
             <div className="flex-1 h-7 bg-muted rounded-md overflow-hidden">
               <div
-                className={cn("h-full rounded-md flex items-center justify-end px-2 transition-all", s.color)}
-                style={{ width: `${s.pct}%` }}
+                className={cn(
+                  "h-full rounded-md flex items-center justify-end px-2 transition-all",
+                  stageColors[stage.label]
+                )}
+                style={{ width: `${stage.percentage}%` }}
               >
-                <span className="text-[10px] font-semibold text-white">{s.value.toLocaleString()}</span>
+                <span className="text-[10px] font-semibold text-white">{stage.count.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -349,8 +377,8 @@ function EmailAnalyticsChart({
         </ChartContainer>
       </CardContent>
     </Card>
-  );                  
-}                                                                                                                                 
+  );
+}
 /* ─────────────────────────────────────────────────────────────────────────
    Pie chart (conic-gradient based — no extra dependency)
 ───────────────────────────────────────────────────────────────────────── */
@@ -400,155 +428,218 @@ function PieChartCard({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Top Performing Leads — table
-───────────────────────────────────────────────────────────────────────── */
 
-function TopPerformingLeads({
-  leads,
-}: {
-  leads: LeadData[];
-}) {
+function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
+  const sortedLeads = useMemo(() => {
+    return [...leads].sort((a, b) => {
+      const aReplies = a.replies ?? 0;
+      const bReplies = b.replies ?? 0;
+      if (aReplies > 0 && bReplies === 0) return -1;
+      if (aReplies === 0 && bReplies > 0) return 1;
+      return bReplies - aReplies;
+    });
+  }, [leads]);
+
   return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-3 px-5 pt-5">
+    <Card className="border-border/60 shadow-sm rounded-xl h-full overflow-hidden">
+      <CardHeader className="pb-4 px-6 pt-5 border-b border-border/60 bg-muted/20">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold text-foreground">
-            Lead Status
-          </CardTitle>
-          <span className="text-xs text-muted-foreground font-medium">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+              <Users className="w-4 h-4 text-indigo-600" />
+            </div>
+            <CardTitle className="text-base font-semibold text-foreground">
+              Lead Status
+            </CardTitle>
+          </div>
+          <Badge variant="secondary" className="font-medium text-xs">
             {leads.length} {leads.length === 1 ? "lead" : "leads"}
-          </span>
+          </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="px-0 pb-2">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50 border-b border-border hover:bg-muted/50">
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pl-5">
-                Lead Name
-              </TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Replies
-              </TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Score
-              </TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pr-5">
-                Status
-              </TableHead>
-            </TableRow>
-          </TableHeader>
+      <CardContent className="p-0">
+        {sortedLeads.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
+              <Users className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium text-foreground">No leads found</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              New leads will appear here once added.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/60">
+            {sortedLeads.map((lead) => {
+              const initials = lead.name
+                .split(" ")
+                .map((part) => part[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase();
 
-          <TableBody>
-            {leads.length === 0 ? (
-              <TableRow className="hover:bg-transparent">
-                <TableCell
-                  colSpan={4}
-                  className="text-center text-sm text-muted-foreground py-10"
+              const hasReplies = (lead.replies ?? 0) > 0;
+              const score = lead.score ?? 0;
+
+              return (
+                <div
+                  key={lead.customerid}
+                  className="flex items-center gap-4 px-6 py-3.5 hover:bg-muted/30 transition-colors"
                 >
-                  No leads found
-                </TableCell>
-              </TableRow>
-            ) : (
-              leads.map((lead) => {
-                const initials = lead.name
-                  .split(" ")
-                  .map((part) => part[0])
-                  .slice(0, 2)
-                  .join("")
-                  .toUpperCase();
+                  <div className="relative shrink-0">
+                    <Avatar className="w-9 h-9">
+                      <AvatarFallback
+                        className={cn(
+                          "text-xs font-semibold",
+                          hasReplies
+                            ? "bg-indigo-600 text-white"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    {hasReplies && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+                    )}
+                  </div>
 
-                return (
-                  <TableRow
-                    key={lead.customerid}
-                    className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors"
-                  >
-                    <TableCell className="pl-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
-                          <span className="text-[11px] font-bold text-white">
-                            {initials}
-                          </span>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground leading-tight truncate">
-                            {lead.customer_name}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                            {lead.name}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground leading-tight truncate">
+                      {lead.customer_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                      {lead.name}
+                    </p>
+                  </div>
 
-                    <TableCell className="text-sm font-medium text-foreground">
+                  <div className="flex items-center gap-1.5 w-16 shrink-0 justify-center">
+                    <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span
+                      className={cn(
+                        "text-sm font-semibold",
+                        hasReplies ? "text-foreground" : "text-muted-foreground"
+                      )}
+                    >
                       {lead.replies ?? 0}
-                    </TableCell>
+                    </span>
+                  </div>
 
-                    <TableCell>
-                      <span className="inline-flex items-center gap-1 text-sm font-semibold text-foreground">
-                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                        {lead.score ?? 0}
-                      </span>
-                    </TableCell>
+                  <div className="flex items-center gap-2 w-24 shrink-0">
+                    <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-amber-500"
+                        style={{ width: `${Math.min(score, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground w-7 text-right">
+                      {score}
+                    </span>
+                  </div>
 
-                    <TableCell className="pr-5">
-                      <StatusBadge status={lead.status} />
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+                  <div className="shrink-0 w-28 flex justify-end">
+                    <StatusBadge status={lead.status} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
+function AIInsightsCard({
+  aiInsights,
+}: {
+  aiInsights: string;
+}) {
+  const [showFull, setShowFull] = useState(false);
 
-function AIInsightsCard() {
   return (
     <Card className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-900 dark:to-black border-0 shadow-lg rounded-xl text-white h-full">
       <CardContent className="p-5 flex flex-col h-full">
-        <p className="text-[10px] font-semibold text-indigo-300 mb-2 uppercase tracking-widest flex items-center gap-1.5">
-          <Bot className="w-3.5 h-3.5" /> AI Insights
-        </p>
-        <p className="text-sm text-slate-300 leading-relaxed flex-1">
-          Your reply rate is <span className="text-white font-semibold">18% above</span> last
-          month&apos;s average, driven mostly by leads sourced from LinkedIn.
-        </p>
-        <Button className="w-full mt-5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-lg h-9">
-          View Full Analysis
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+              <Brain className="w-4 h-4 text-indigo-400" />
+            </div>
+            <CardTitle className="text-base font-semibold text-white">
+              AI Insights
+            </CardTitle>
+          </div>
+          <Badge className="bg-indigo-500/15 text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/15">
+            <Sparkles className="w-3 h-3 mr-1" />
+            AI Powered
+          </Badge>
+        </div>
+
+        {!showFull && (
+          <p className="text-sm text-slate-400 mt-3 line-clamp-2">
+            {aiInsights}
+          </p>
+        )}
+
+        {showFull && (
+          <div className="mt-4 space-y-3 border-t border-slate-700/60 pt-4 flex-1">
+            <p className="text-sm text-slate-300 leading-relaxed">
+              {aiInsights}
+            </p>
+          </div>
+        )}
+
+        <Button
+          onClick={() => setShowFull(!showFull)}
+          variant="ghost"
+          className="w-full mt-4 bg-white/5 hover:bg-white/10 text-white gap-1.5"
+        >
+          {showFull ? "Hide Analysis" : "View Full Analysis"}
+          <ChevronDown
+            className={`w-4 h-4 transition-transform duration-200 ${showFull ? "rotate-180" : ""
+              }`}
+          />
         </Button>
       </CardContent>
     </Card>
   );
 }
 
-function AIRecommendationsCard() {
-  const recommendations = [
-    "Follow up with 6 stalled leads in the Contacted stage",
-    "Re-engage leads from Facebook — reply rate dropped 9%",
-    "Send a nurture sequence to leads idle for 14+ days",
-  ];
+function AIRecommendationsCard({
+  recommendations,
+}: {
+  recommendations: string[];
+}) {
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
       <CardHeader className="pb-2 px-5 pt-5">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-          <CardTitle className="text-base font-semibold text-foreground">AI Recommendations</CardTitle>
+          <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <CardTitle className="text-base font-semibold">
+            AI Recommendations
+          </CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="px-5 pb-5 space-y-3">
-        {recommendations.map((r, i) => (
-          <div key={i} className="flex items-start gap-2.5">
-            <div className="w-5 h-5 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0 mt-0.5">
-              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{i + 1}</span>
+
+      <CardContent className="px-5 pb-5 space-y-1">
+        {recommendations.map((recommendation, index) => (
+          <div key={index}>
+            <div className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg transition-colors hover:bg-muted/60">
+              <div className="w-5 h-5 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                  {index + 1}
+                </span>
+              </div>
+              <p className="text-sm leading-snug text-foreground/90">
+                {recommendation}
+              </p>
             </div>
-            <p className="text-sm text-foreground leading-snug">{r}</p>
+            {index < recommendations.length - 1 && (
+              <Separator className="opacity-50" />
+            )}
           </div>
         ))}
       </CardContent>
@@ -556,68 +647,70 @@ function AIRecommendationsCard() {
   );
 }
 
-function LeadPredictionCard() {
+function LeadPredictionCard({
+  prediction,
+}: {
+  prediction: AIPredictionType;
+}) {
+  // confidence comes in as a string like "82%" — Progress needs a number
+  const confidenceValue = parseFloat(prediction.confidence);
+
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
       <CardHeader className="pb-2 px-5 pt-5">
         <div className="flex items-center gap-2">
-          <Target className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <CardTitle className="text-base font-semibold text-foreground">Lead Prediction</CardTitle>
+          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+            <Target className="w-4 h-4 text-emerald-600" />
+          </div>
+          <CardTitle className="text-base font-semibold">
+            Lead Prediction
+          </CardTitle>
         </div>
       </CardHeader>
+
       <CardContent className="px-5 pb-5">
-        <p className="text-3xl font-bold text-foreground tracking-tight">142</p>
-        <p className="text-xs text-muted-foreground mb-4">projected new leads next 30 days</p>
+        <div className="flex items-baseline gap-2">
+          <p className="text-3xl font-bold tracking-tight">
+            {prediction.predicted_leads}
+          </p>
+          <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-0">
+            <TrendingUp className="w-3 h-3 mr-1" />
+            30d
+          </Badge>
+        </div>
+
+        <p className="text-xs text-muted-foreground mb-4">
+          projected new leads next 30 days
+        </p>
+
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Model confidence</span>
-            <span className="font-semibold text-foreground">87%</span>
+            <span className="font-medium">{prediction.confidence}</span>
           </div>
-          <div className="h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-emerald-500" style={{ width: "87%" }} />
-          </div>
+
+          <Progress
+            value={confidenceValue}
+            className="h-2 [&>div]:bg-emerald-500"
+          />
+
+          <p className="text-sm text-muted-foreground mt-3 leading-snug">
+            {prediction.prediction}
+          </p>
+
+          <p className="text-xs text-emerald-600 font-medium mt-2">
+            Expected Conversion: {prediction.conversion_rate}
+          </p>
         </div>
       </CardContent>
     </Card>
   );
 }
-
 /* ─────────────────────────────────────────────────────────────────────────
    Recent Activity Timeline
 ───────────────────────────────────────────────────────────────────────── */
 
-function ActivityTimeline() {
-  return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl">
-      <CardHeader className="pb-2 px-5 pt-5">
-        <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-          <CardTitle className="text-base font-semibold text-foreground">Recent Activity Timeline</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent className="px-5 pb-5">
-        <div className="relative pl-4">
-          <div className="absolute left-[27px] top-2 bottom-2 w-px bg-border" />
-          <div className="space-y-5">
-            {activityTimeline.map((a, i) => (
-              <div key={i} className="flex items-start gap-3 relative">
-                <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 ring-4 ring-card", a.color)}>
-                  <a.icon className="w-4 h-4" />
-                </div>
-                <div className="pt-1.5">
-                  <p className="text-sm text-foreground font-medium leading-snug">{a.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> {a.time}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+
 
 
 
@@ -629,6 +722,12 @@ export default function ReportsPage({
   monthlyleads,
   emailanalytics,
   leadsdata,
+  leadanalytics,
+  leadpipeline,
+  AIReply,
+  aiInsights,
+  aiRecommendations,
+  aiprediction
 }: ReportsPageProps) {
   const overview = [
     {
@@ -674,6 +773,130 @@ export default function ReportsPage({
       type: "positive" as const,
     },
   ];
+  const replySentiment = useMemo(() => {
+    const colors: Record<string, string> = {
+      Positive: "#4f46e5",
+      Neutral: "#f59e0b",
+      Negative: "#f43f5e",
+    };
+
+    return AIReply.map((item) => ({
+      ...item,
+      color: colors[item.label] ?? "#94a3b8",
+    }));
+  }, [AIReply]);
+
+  const reportRef = useRef<HTMLDivElement>(null);
+  const exportPDF = async () => {
+    if (!reportRef.current) return;
+
+    const dataUrl = await htmlToImage.toPng(reportRef.current);
+
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const width = pdf.internal.pageSize.getWidth();
+
+    const img = new Image();
+
+    img.src = dataUrl;
+
+    img.onload = () => {
+      const height = (img.height * width) / img.width;
+
+      pdf.addImage(dataUrl, "PNG", 0, 0, width, height);
+
+      pdf.save("CRM_Report.pdf");
+    };
+  };
+
+
+  const exportExcel = () => {
+    const workbook = XLSX.utils.book_new();
+
+    // Overview
+    const overviewData = [
+      { Metric: "Total Leads", Value: countleads },
+      { Metric: "Customers", Value: countcustomer },
+      { Metric: "Emails Sent", Value: totalemailsent },
+      { Metric: "Replies", Value: totalreplies },
+      { Metric: "Conversion Rate", Value: "18.4%" },
+      { Metric: "Lead Score Avg", Value: 72 },
+    ];
+
+    const overviewSheet = XLSX.utils.json_to_sheet(overviewData);
+    XLSX.utils.book_append_sheet(workbook, overviewSheet, "Overview");
+
+    // Monthly Leads
+    const monthlySheet = XLSX.utils.json_to_sheet(monthlyleads);
+    XLSX.utils.book_append_sheet(workbook, monthlySheet, "Monthly Leads");
+
+    // Email Analytics
+    const emailSheet = XLSX.utils.json_to_sheet(emailanalytics);
+    XLSX.utils.book_append_sheet(workbook, emailSheet, "Email Analytics");
+
+    // Lead Pipeline
+    const pipelineSheet = XLSX.utils.json_to_sheet(leadpipeline);
+    XLSX.utils.book_append_sheet(workbook, pipelineSheet, "Pipeline");
+
+    // Lead Source
+    const sourceSheet = XLSX.utils.json_to_sheet(leadanalytics);
+    XLSX.utils.book_append_sheet(workbook, sourceSheet, "Lead Sources");
+
+    // AI Reply Sentiment
+    const sentimentSheet = XLSX.utils.json_to_sheet(AIReply);
+    XLSX.utils.book_append_sheet(workbook, sentimentSheet, "Reply Sentiment");
+
+    // Lead Table
+    const leadSheet = XLSX.utils.json_to_sheet(leadsdata);
+    XLSX.utils.book_append_sheet(workbook, leadSheet, "Leads");
+
+    // AI Recommendations
+    const recommendationSheet = XLSX.utils.json_to_sheet(
+      aiRecommendations.map((item, index) => ({
+        No: index + 1,
+        Recommendation: item,
+      }))
+    );
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      recommendationSheet,
+      "AI Recommendations"
+    );
+
+    // Prediction
+    const predictionSheet = XLSX.utils.json_to_sheet([
+      {
+        PredictedLeads: aiprediction.predicted_leads,
+        ConversionRate: aiprediction.conversion_rate,
+        Confidence: aiprediction.confidence,
+        Prediction: aiprediction.prediction,
+      },
+    ]);
+
+    XLSX.utils.book_append_sheet(workbook, predictionSheet, "Prediction");
+
+    // AI Insight
+    const insightSheet = XLSX.utils.json_to_sheet([
+      {
+        Insight: aiInsights,
+      },
+    ]);
+
+    XLSX.utils.book_append_sheet(workbook, insightSheet, "AI Insight");
+
+    // Download
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const file = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(file, "CRM_Report.xlsx");
+  };
 
   return (
     <>
@@ -707,7 +930,10 @@ export default function ReportsPage({
       </header>
 
       {/* ── Page content ── */}
-      <div className="p-6 space-y-5 bg-background min-h-[calc(100vh-3.5rem)]">
+      <div
+        ref={reportRef}
+        className="p-6 space-y-5 bg-background min-h-[calc(100vh-3.5rem)]"
+      >
         {/* Heading */}
         <div className="flex items-start justify-between">
           <div>
@@ -717,14 +943,17 @@ export default function ReportsPage({
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 border-border text-muted-foreground">
-              <Calendar className="w-3.5 h-3.5" />Last 30 Days
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 border-border text-muted-foreground">
+
+            <Button variant="outline" size="sm" id="report" onClick={exportPDF} className="h-8 text-xs gap-1.5 border-border text-muted-foreground">
               <FileText className="w-3.5 h-3.5" />Export PDF
             </Button>
-            <Button size="sm" className="h-8 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white">
-              <FileSpreadsheet className="w-3.5 h-3.5" />Export Excel
+            <Button
+              size="sm"
+              onClick={exportExcel}
+              className="h-8 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Export Excel
             </Button>
           </div>
         </div>
@@ -738,8 +967,8 @@ export default function ReportsPage({
 
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div className="xl:col-span-2"><LeadAnalyticsChart  data={monthlyleads}/></div>
-          <div><PipelineFunnel /></div>
+          <div className="xl:col-span-2"><LeadAnalyticsChart data={monthlyleads} /></div>
+          <div><PipelineFunnel data={leadpipeline} /></div>
         </div>
 
 
@@ -751,16 +980,18 @@ export default function ReportsPage({
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div><PieChartCard title="Lead Source" data={leadSource} icon={Globe} /></div>
+          <div><PieChartCard
+            title="Lead Source"
+            icon={Globe}
+            data={leadanalytics}
+          /></div>
           <div className="xl:col-span-2"><TopPerformingLeads leads={leadsdata} /></div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <AIInsightsCard />
-          <AIRecommendationsCard />          <LeadPredictionCard />
+          <AIInsightsCard aiInsights={aiInsights} />
+          <AIRecommendationsCard recommendations={aiRecommendations} />          <LeadPredictionCard prediction={aiprediction} />
         </div>
-
-        <ActivityTimeline />
       </div>
     </>
   );
