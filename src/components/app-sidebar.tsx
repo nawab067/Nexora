@@ -142,7 +142,7 @@ export function AppSidebar() {
         `${baseurl}/logout`,
         {},
         {
-          withCredentials: true, // sends cookies
+          withCredentials: true, 
         }
       );
 
@@ -170,7 +170,7 @@ export function AppSidebar() {
           {/* Brand text — hidden in icon-collapsed mode */}
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-bold text-white tracking-wide">
-              CRM
+              Nexora
             </span>
             <span className="text-[10px] font-medium text-slate-400 tracking-wider uppercase">
               Enterprise Suite

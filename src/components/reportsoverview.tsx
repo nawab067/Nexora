@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
 import { Badge } from "@/components/ui/badge";
-import { BarChart, Bar, YAxis, } from "recharts";
+import { BarChart, Bar, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Brain, ChevronDown } from "lucide-react";
 import { useRef } from "react";
@@ -12,7 +12,6 @@ import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
 
 import { saveAs } from "file-saver";
-
 
 import { Progress } from "@/components/ui/progress";
 
@@ -61,12 +60,11 @@ import {
   CheckCircle2,
   UserPlus,
   Phone,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
-
 
 export interface Analytics {
   label: string;
@@ -101,7 +99,6 @@ interface LeadData {
   status: string;
   replies?: number;
   score?: number;
-
 }
 
 interface MonthlyLead {
@@ -129,27 +126,34 @@ interface ReportsPageProps {
   aiInsights: string;
   aiRecommendations: string[];
   aiprediction: AIPredictionType;
+  conversionrate: number;
+  averagescore: number;
+  refreshing: boolean;
+  onRefresh: () => void;
 }
-
-
-
-
-
 
 type StatusType = "NEW" | "CONTACTED" | "QUALIFIED" | "LOST" | "WON";
 const STATUS_STYLES: Record<StatusType, string> = {
   NEW: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  CONTACTED: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  QUALIFIED: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  CONTACTED:
+    "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  QUALIFIED:
+    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
   LOST: "bg-rose-500/10 text-rose-500 dark:text-rose-400 border-rose-500/20",
   WON: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
 };
 
 function StatusBadge({ status }: { status: string }) {
   const s = status.toUpperCase() as StatusType;
-  const style = STATUS_STYLES[s] ?? "bg-muted text-muted-foreground border-border";
+  const style =
+    STATUS_STYLES[s] ?? "bg-muted text-muted-foreground border-border";
   return (
-    <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border tracking-wide", style)}>
+    <span
+      className={cn(
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border tracking-wide",
+        style,
+      )}
+    >
       {s}
     </span>
   );
@@ -160,9 +164,17 @@ function StatusBadge({ status }: { status: string }) {
 ───────────────────────────────────────────────────────────────────────── */
 
 function OverviewCard({
-  icon: Icon, label, value, change, type,
+  icon: Icon,
+  label,
+  value,
+  change,
+  type,
 }: {
-  icon: React.ElementType; label: string; value: string; change: string; type: "positive" | "negative";
+  icon: React.ElementType;
+  label: string;
+  value: string | number;
+  change: string;
+  type: "positive" | "negative";
 }) {
   const ArrowIcon = type === "positive" ? ArrowUpRight : ArrowDownRight;
   return (
@@ -172,29 +184,40 @@ function OverviewCard({
           <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
             <Icon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <span className={cn(
-            "flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full",
-            type === "positive"
-              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              : "bg-rose-500/10 text-rose-500 dark:text-rose-400"
-          )}>
+          <span
+            className={cn(
+              "flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full",
+              type === "positive"
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : "bg-rose-500/10 text-rose-500 dark:text-rose-400",
+            )}
+          >
             <ArrowIcon className="w-3 h-3" />
             {change}
           </span>
         </div>
         <p className="text-sm text-muted-foreground mb-1">{label}</p>
-        <p className="text-2xl font-bold text-foreground tracking-tight">{value}</p>
+        <p className="text-2xl font-bold text-foreground tracking-tight">
+          {value}
+        </p>
       </CardContent>
     </Card>
   );
 }
 
-
-
-
 const ALL_MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 function normalizeMonthlyLeads(data: { month: string; leads: number }[]) {
@@ -229,16 +252,29 @@ function LeadAnalyticsChart({
           <CardTitle className="text-base font-semibold text-foreground">
             Lead Analytics
           </CardTitle>
-          <span className="text-xs text-muted-foreground font-medium">Monthly Leads</span>
+          <span className="text-xs text-muted-foreground font-medium">
+            Monthly Leads
+          </span>
         </div>
       </CardHeader>
       <CardContent className="px-5 pb-5">
         <ChartContainer config={leadChartConfig} className="h-40 w-full">
-          <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
+          <AreaChart
+            data={chartData}
+            margin={{ left: 0, right: 0, top: 8, bottom: 0 }}
+          >
             <defs>
               <linearGradient id="leadArea" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--color-leads)" stopOpacity={0.25} />
-                <stop offset="100%" stopColor="var(--color-leads)" stopOpacity={0} />
+                <stop
+                  offset="0%"
+                  stopColor="var(--color-leads)"
+                  stopOpacity={0.25}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="var(--color-leads)"
+                  stopOpacity={0}
+                />
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -257,7 +293,12 @@ function LeadAnalyticsChart({
               fill="url(#leadArea)"
               stroke="var(--color-leads)"
               strokeWidth={2.5}
-              dot={{ r: 3, fill: "var(--color-leads)", stroke: "white", strokeWidth: 1.5 }}
+              dot={{
+                r: 3,
+                fill: "var(--color-leads)",
+                stroke: "white",
+                strokeWidth: 1.5,
+              }}
               activeDot={{ r: 5 }}
             />
           </AreaChart>
@@ -275,29 +316,31 @@ const stageColors: Record<string, string> = {
   Won: "bg-green-500",
 };
 
-function PipelineFunnel({
-  data,
-}: {
-  data: Analytics[];
-}) {
+function PipelineFunnel({ data }: { data: Analytics[] }) {
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
       <CardHeader className="pb-2 px-5 pt-5">
-        <CardTitle className="text-base font-semibold text-foreground">Pipeline</CardTitle>
+        <CardTitle className="text-base font-semibold text-foreground">
+          Pipeline
+        </CardTitle>
       </CardHeader>
       <CardContent className="px-5 pb-5 space-y-3">
         {data.map((stage) => (
           <div key={stage.label} className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground font-medium w-20 shrink-0">{stage.label}</span>
+            <span className="text-xs text-muted-foreground font-medium w-20 shrink-0">
+              {stage.label}
+            </span>
             <div className="flex-1 h-7 bg-muted rounded-md overflow-hidden">
               <div
                 className={cn(
                   "h-full rounded-md flex items-center justify-end px-2 transition-all",
-                  stageColors[stage.label]
+                  stageColors[stage.label],
                 )}
                 style={{ width: `${stage.percentage}%` }}
               >
-                <span className="text-[10px] font-semibold text-white">{stage.count.toLocaleString()}</span>
+                <span className="text-[10px] font-semibold text-white">
+                  {stage.count.toLocaleString()}
+                </span>
               </div>
             </div>
           </div>
@@ -317,11 +360,7 @@ const emailChartConfig = {
   ignored: { label: "Ignored", color: "#d1d5db" },
 } satisfies ChartConfig;
 
-function EmailAnalyticsChart({
-  data,
-}: {
-  data: EmailAnalytics[];
-}) {
+function EmailAnalyticsChart({ data }: { data: EmailAnalytics[] }) {
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
       <CardHeader className="pb-2 px-5 pt-5">
@@ -349,7 +388,10 @@ function EmailAnalyticsChart({
 
       <CardContent className="px-5 pb-5">
         <ChartContainer config={emailChartConfig} className="h-44 w-full">
-          <BarChart data={data} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
+          <BarChart
+            data={data}
+            margin={{ left: 0, right: 0, top: 8, bottom: 0 }}
+          >
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis
               dataKey="label"
@@ -370,9 +412,24 @@ function EmailAnalyticsChart({
               cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }}
               content={<ChartTooltipContent />}
             />
-            <Bar dataKey="sent" fill="var(--color-sent)" radius={[3, 3, 0, 0]} barSize={10} />
-            <Bar dataKey="replies" fill="var(--color-replies)" radius={[3, 3, 0, 0]} barSize={10} />
-            <Bar dataKey="ignored" fill="var(--color-ignored)" radius={[3, 3, 0, 0]} barSize={10} />
+            <Bar
+              dataKey="sent"
+              fill="var(--color-sent)"
+              radius={[3, 3, 0, 0]}
+              barSize={10}
+            />
+            <Bar
+              dataKey="replies"
+              fill="var(--color-replies)"
+              radius={[3, 3, 0, 0]}
+              barSize={10}
+            />
+            <Bar
+              dataKey="ignored"
+              fill="var(--color-ignored)"
+              radius={[3, 3, 0, 0]}
+              barSize={10}
+            />
           </BarChart>
         </ChartContainer>
       </CardContent>
@@ -384,10 +441,17 @@ function EmailAnalyticsChart({
 ───────────────────────────────────────────────────────────────────────── */
 
 function PieChartCard({
-  title, data, icon: Icon,
+  title,
+  data,
+  icon: Icon,
 }: {
   title: string;
-  data: { label: string; value: number; color: string; icon?: React.ElementType }[];
+  data: {
+    label: string;
+    value: number;
+    color: string;
+    icon?: React.ElementType;
+  }[];
   icon: React.ElementType;
 }) {
   let cumulative = 0;
@@ -402,7 +466,9 @@ function PieChartCard({
       <CardHeader className="pb-2 px-5 pt-5">
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-          <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
+          <CardTitle className="text-base font-semibold text-foreground">
+            {title}
+          </CardTitle>
         </div>
       </CardHeader>
       <CardContent className="px-5 pb-5 flex items-center gap-5">
@@ -417,9 +483,16 @@ function PieChartCard({
         <div className="space-y-2 flex-1 min-w-0">
           {data.map((d) => (
             <div key={d.label} className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-              <span className="text-xs text-muted-foreground flex-1 truncate">{d.label}</span>
-              <span className="text-xs font-semibold text-foreground">{d.value}%</span>
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: d.color }}
+              />
+              <span className="text-xs text-muted-foreground flex-1 truncate">
+                {d.label}
+              </span>
+              <span className="text-xs font-semibold text-foreground">
+                {d.value}%
+              </span>
             </div>
           ))}
         </div>
@@ -428,7 +501,6 @@ function PieChartCard({
   );
 }
 
-
 function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
   const sortedLeads = useMemo(() => {
     return [...leads].sort((a, b) => {
@@ -436,9 +508,12 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
       const bReplies = b.replies ?? 0;
       if (aReplies > 0 && bReplies === 0) return -1;
       if (aReplies === 0 && bReplies > 0) return 1;
+
+     
       return bReplies - aReplies;
     });
   }, [leads]);
+  console.log("Sorted leads:",sortedLeads);
 
   return (
     <Card className="border-border/60 shadow-sm rounded-xl h-full overflow-hidden">
@@ -464,7 +539,9 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
               <Users className="w-5 h-5 text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium text-foreground">No leads found</p>
+            <p className="text-sm font-medium text-foreground">
+              No leads found
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
               New leads will appear here once added.
             </p>
@@ -494,7 +571,7 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
                           "text-xs font-semibold",
                           hasReplies
                             ? "bg-indigo-600 text-white"
-                            : "bg-muted text-muted-foreground"
+                            : "bg-muted text-muted-foreground",
                         )}
                       >
                         {initials}
@@ -519,7 +596,9 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
                     <span
                       className={cn(
                         "text-sm font-semibold",
-                        hasReplies ? "text-foreground" : "text-muted-foreground"
+                        hasReplies
+                          ? "text-foreground"
+                          : "text-muted-foreground",
                       )}
                     >
                       {lead.replies ?? 0}
@@ -551,11 +630,7 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
   );
 }
 
-function AIInsightsCard({
-  aiInsights,
-}: {
-  aiInsights: string;
-}) {
+function AIInsightsCard({ aiInsights }: { aiInsights: string }) {
   const [showFull, setShowFull] = useState(false);
 
   return (
@@ -597,8 +672,9 @@ function AIInsightsCard({
         >
           {showFull ? "Hide Analysis" : "View Full Analysis"}
           <ChevronDown
-            className={`w-4 h-4 transition-transform duration-200 ${showFull ? "rotate-180" : ""
-              }`}
+            className={`w-4 h-4 transition-transform duration-200 ${
+              showFull ? "rotate-180" : ""
+            }`}
           />
         </Button>
       </CardContent>
@@ -647,11 +723,7 @@ function AIRecommendationsCard({
   );
 }
 
-function LeadPredictionCard({
-  prediction,
-}: {
-  prediction: AIPredictionType;
-}) {
+function LeadPredictionCard({ prediction }: { prediction: AIPredictionType }) {
   // confidence comes in as a string like "82%" — Progress needs a number
   const confidenceValue = parseFloat(prediction.confidence);
 
@@ -673,7 +745,10 @@ function LeadPredictionCard({
           <p className="text-3xl font-bold tracking-tight">
             {prediction.predicted_leads}
           </p>
-          <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-0">
+          <Badge
+            variant="secondary"
+            className="bg-emerald-500/10 text-emerald-600 border-0"
+          >
             <TrendingUp className="w-3 h-3 mr-1" />
             30d
           </Badge>
@@ -710,10 +785,6 @@ function LeadPredictionCard({
    Recent Activity Timeline
 ───────────────────────────────────────────────────────────────────────── */
 
-
-
-
-
 export default function ReportsPage({
   countleads,
   countcustomer,
@@ -727,7 +798,11 @@ export default function ReportsPage({
   AIReply,
   aiInsights,
   aiRecommendations,
-  aiprediction
+  aiprediction,
+  conversionrate,
+  averagescore,
+   refreshing,
+  onRefresh
 }: ReportsPageProps) {
   const overview = [
     {
@@ -761,14 +836,14 @@ export default function ReportsPage({
     {
       icon: TrendingUp,
       label: "Conversion Rate",
-      value: "18.4%",
+      value: conversionrate.toString(),
       change: "+1.8%",
       type: "positive" as const,
     },
     {
       icon: Target,
       label: "Lead Score Avg",
-      value: "72",
+      value: averagescore,
       change: "+4 pts",
       type: "positive" as const,
     },
@@ -779,6 +854,8 @@ export default function ReportsPage({
       Neutral: "#f59e0b",
       Negative: "#f43f5e",
     };
+
+    console.log(overview);
 
     return AIReply.map((item) => ({
       ...item,
@@ -808,7 +885,6 @@ export default function ReportsPage({
       pdf.save("CRM_Report.pdf");
     };
   };
-
 
   const exportExcel = () => {
     const workbook = XLSX.utils.book_new();
@@ -855,13 +931,13 @@ export default function ReportsPage({
       aiRecommendations.map((item, index) => ({
         No: index + 1,
         Recommendation: item,
-      }))
+      })),
     );
 
     XLSX.utils.book_append_sheet(
       workbook,
       recommendationSheet,
-      "AI Recommendations"
+      "AI Recommendations",
     );
 
     // Prediction
@@ -897,7 +973,9 @@ export default function ReportsPage({
 
     saveAs(file, "CRM_Report.xlsx");
   };
-
+  console.log("AIReply:", AIReply);
+  console.log("replySentiment:", replySentiment);
+  console.log("leadanalytics:", leadanalytics);
   return (
     <>
       {/* ── Navbar ── */}
@@ -905,6 +983,23 @@ export default function ReportsPage({
         <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
         <Separator orientation="vertical" className="h-5" />
         <div className="flex items-center gap-2 flex-1 max-w-sm">
+           <Button
+    variant="outline"
+    size="sm"
+    onClick={onRefresh}
+    disabled={refreshing}
+    className="h-8 text-xs gap-1.5 border-border text-muted-foreground hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 disabled:opacity-70 transition-colors"
+  >
+    <RefreshCw
+      className={cn(
+        "w-3.5 h-3.5 transition-transform duration-500",
+        refreshing && "animate-spin",
+      )}
+    />
+    {refreshing ? "Refreshing..." : "Refresh"}
+  </Button>
+
+  <Separator orientation="vertical" className="h-5" />
           <Search className="w-4 h-4 text-muted-foreground shrink-0" />
           <input
             type="text"
@@ -943,9 +1038,15 @@ export default function ReportsPage({
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-
-            <Button variant="outline" size="sm" id="report" onClick={exportPDF} className="h-8 text-xs gap-1.5 border-border text-muted-foreground">
-              <FileText className="w-3.5 h-3.5" />Export PDF
+            <Button
+              variant="outline"
+              size="sm"
+              id="report"
+              onClick={exportPDF}
+              className="h-8 text-xs gap-1.5 border-border text-muted-foreground"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              Export PDF
             </Button>
             <Button
               size="sm"
@@ -958,39 +1059,51 @@ export default function ReportsPage({
           </div>
         </div>
 
-
         <div className="grid grid-cols-2 xl:grid-cols-6 gap-4">
           {overview.map((o) => (
             <OverviewCard key={o.label} {...o} />
           ))}
         </div>
 
-
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div className="xl:col-span-2"><LeadAnalyticsChart data={monthlyleads} /></div>
-          <div><PipelineFunnel data={leadpipeline} /></div>
-        </div>
-
-
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div className="xl:col-span-2"><EmailAnalyticsChart data={emailanalytics} /></div>
+          <div className="xl:col-span-2">
+            <LeadAnalyticsChart data={monthlyleads} />
+          </div>
           <div>
-            <PieChartCard title="Reply Sentiment" data={replySentiment} icon={MessageSquare} />
+            <PipelineFunnel data={leadpipeline} />
           </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div><PieChartCard
-            title="Lead Source"
-            icon={Globe}
-            data={leadanalytics}
-          /></div>
-          <div className="xl:col-span-2"><TopPerformingLeads leads={leadsdata} /></div>
+          <div className="xl:col-span-2">
+            <EmailAnalyticsChart data={emailanalytics} />
+          </div>
+          <div>
+            <PieChartCard
+              title="Reply Sentiment"
+              data={replySentiment}
+              icon={MessageSquare}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <div>
+            <PieChartCard
+              title="Lead Source"
+              icon={Globe}
+              data={leadanalytics}
+            />
+          </div>
+          <div className="xl:col-span-2">
+            <TopPerformingLeads leads={leadsdata} />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <AIInsightsCard aiInsights={aiInsights} />
-          <AIRecommendationsCard recommendations={aiRecommendations} />          <LeadPredictionCard prediction={aiprediction} />
+          <AIRecommendationsCard recommendations={aiRecommendations} />{" "}
+          <LeadPredictionCard prediction={aiprediction} />
         </div>
       </div>
     </>

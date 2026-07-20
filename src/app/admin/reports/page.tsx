@@ -1,333 +1,184 @@
-'use client';
+"use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import ReportsPageproops from "@/components/reportsoverview";
+import { Button } from "@/components/ui/button";
 
-interface AIPredictionType {
+const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
+
+interface DashboardData {
+  countLeads: number;
+  customers: number;
+  emails: number;
+  replies: number;
+  monthly: any[];
+  pipeline: any[];
+  emailAnalytics: any[];
+  leadAnalytics: any[];
+  averageScore: number;
+  conversionRate: number;
+  prediction: {
     predicted_leads: number;
     conversion_rate: string;
     confidence: string;
     prediction: string;
+  };
+  insights: string;
+  recommendations: string[];
+  replySentiments: any[];
+  leadsData: any[];
 }
 
+export default function ReportsPage() {
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-const baseurl = process.env.NEXT_PUBLIC_BASE_URL
+  const [dashboard, setDashboard] = useState<DashboardData>({
+    countLeads: 0,
+    customers: 0,
+    emails: 0,
+    replies: 0,
+    monthly: [],
+    pipeline: [],
+    emailAnalytics: [],
+    leadAnalytics: [],
+    averageScore: 0,
+    conversionRate: 0,
 
-interface customer {
-    _id: string;
-    name: string;
-}
-export default function RemindersPage() {
-    const [userid, setUserid] = useState<string | null>(null);
-    const [countleads, setcountleads] = useState<number>(0);
-    const [countcustomer, setcountCustomer] = useState<number>(0);
-    const [totalemailsent, settotalemailsent] = useState<number>(0);
-    const [totalreplies, settotalreplies] = useState<number>(0);
-    const [monthlyleads, setmonthlyleads] = useState<{ month: string; leads: number }[]>([]);
-    const [emailanalytics, setemailanalytics] = useState<{ label: string; sent: number; replies: number; ignored: number }[]>([]);
-    const [leadsdata, setleaddata] = useState<any[]>([]);
-    const [leadanalytics, setleadanalytics] = useState<{
-        label:string;
-        value:number;
-        count:number;
-        color:string;
-    }[]>([]);
-    const [leadpipeline, setleadpipeline]= useState<
-    { label: string; count: number; percentage: number;  }[]>([]);
-    const[AIReply, setAIreply] =useState<{
-        label:string;
-        value:number;
-    }[]>([]);
-    const [aiInsights, setaiInsights] = useState<string>("");
-    const[aiRecomendations,setaiRecomendations]=useState<string[]>([]);
-    const [aiprediction, setaiprediction] = useState<AIPredictionType>({
-        predicted_leads: 0,
-        conversion_rate: "0%",
-        confidence: "0%",
-        prediction: "",
-    });
+    prediction: {
+      predicted_leads: 0,
+      conversion_rate: "0%",
+      confidence: "0%",
+      prediction: "",
+    },
 
+    insights: "",
+    recommendations: [],
+    replySentiments: [],
+    leadsData: [],
+  });
+  const [userid, setUserid] = useState<string | null>(null);
+  const [leadsdata, setleaddata] = useState<any[]>([]);
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
+        if (!token) return;
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) return;
-                const res = await axios.get(`${baseurl}/me`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setUserid(res.data.id);
-            } catch (err) {
-                console.error(err);
-            }
-        };
-        fetchUser();
-    }, []);
+        const res = await axios.get(`${baseurl}/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-    const fetchCountLeads = async () => {
-        try {
-            const response = await axios.get(`${baseurl}/get-total-counts-lead/${userid}`);
-            setcountleads(response.data.data);
-            console.log("Total Leads Count:", response.data);
-        } catch (err) {
-            console.error(err);
-        }
-    }
-
-    useEffect(() => {
-        if (!userid) {
-            return;
-        } fetchCountLeads();
-    }, [userid]);
-
-    const fetchcountcustomer = async () => {
-        try {
-            const response = await axios.get(`${baseurl}/get-total-counts-customer/${userid}`);
-            setcountCustomer(response.data.data);
-        } catch (err) {
-            console.error(err);
-        }
-
-    }
-    useEffect(() => {
-        if (!userid) {
-            return;
-        }
-        fetchcountcustomer();
-    }, [userid]);
-
-
-    const fetchtotalemailsent = async () => {
-        try {
-            const res = await axios.get(`${baseurl}/get-total-email-sent/${userid}`);
-            console.log("Total Emails Sent:", res.data.data);
-            settotalemailsent(res.data.data);
-        } catch (err) {
-            console.error(err);
-        }
-    }
-
-    useEffect(() => {
-        if (!userid) {
-            return;
-        }
-        fetchtotalemailsent();
-    }, [userid]);
-
-    const fetchTotal_count_replies = async () => {
-        try {
-            const response = await axios.get(`${baseurl}/get-total-count-replies/${userid}`);
-            settotalreplies(response.data.data);
-        } catch (err) {
-            console.error(err);
-        }
-    }
-    useEffect(() => {
-        if (!userid) {
-            return;
-        }
-        fetchTotal_count_replies();
-    }, [userid]);
-
-    const fetchMonthlyLeads = async () => {
-        try {
-            const response = await axios.get(`${baseurl}/get-monthly-leads/${userid}`);
-            setmonthlyleads(response.data.data);
-            console.log("Monthly Leads:", response.data.data);
-        } catch (err) {
-            console.error(err);
-        }
-    }
-    useEffect(() => {
-        if (!userid) {
-            return;
-        }
-        fetchMonthlyLeads();
-    }, [userid]);
-
-    const fetcemailAnalytics = async () => {
-        try {
-            const response = await axios.get(`${baseurl}/get-email-analytics/${userid}`);
-            setemailanalytics(response.data.data);
-            console.log("Email Analytics:", response.data.data);
-        } catch (err) {
-            console.error(err);
-        }
-    }
-
-    useEffect(() => {
-        if (!userid) {
-            return;
-        }
-        fetcemailAnalytics();
-    }, [userid]);
-
-    const fetcleadname_status = async () => {
-        try {
-            const response = await axios.get(
-                `${baseurl}/get-customer-leadname-status/${userid}`
-            );
-
-            const leads = response.data.data;
-
-            const updatedLeads = await Promise.all(
-                leads.map(async (lead: any) => {
-                    const customerResponse = await axios.get(
-                        `${baseurl}/get-customer-name/${lead.customerid}`
-                    );
-
-                    const repliesResponse = await axios.get(
-                        `${baseurl}/get-customer-replies/${lead.customerid}`
-                    );
-
-                    const predictscore= await axios.get(
-                        `${baseurl}/predict-lead-score/${lead.customerid}`
-                    )
-
-                    return {
-                        ...lead,
-
-                        customer_name: customerResponse.data.name,
-                        replies: repliesResponse.data.data,
-                        score: predictscore.data.data.score,
-                    };
-                })
-            );
-            setleaddata(updatedLeads);
-        } catch (err) {
-            console.error(err);
-        }
+        setUserid(res.data.id);
+      } catch (err) {
+        console.error(err);
+      }
     };
 
-    useEffect(() => {
-        console.log("leads:", leadsdata);
-        if (!userid) {
-            return;
-        }
-        fetcleadname_status();
-    }, [userid]);
+    fetchUser();
+  }, []);
+  const fetchDashboard = async () => {
+    if (!userid) return;
 
+    console.log("Fetching fresh dashboard...");
 
-    const lead_source_analytics = async() =>{
-        try{
-            const response = await axios.get(`${baseurl}/get-lead-source-analytics/${userid}`);
-            setleadanalytics(response.data.data);
-            console.log(response.data.data);
+    const response = await axios.get(`${baseurl}/dashboard/${userid}`);
 
-        }catch(err){
-            console.error(err);
-        }
-    }
-    useEffect (()=>{
-        if(!userid){
-            return;
-        }
-        lead_source_analytics();
-    },[userid]);
+    setDashboard(response.data.data);
 
-    const lead_pipeline_analytics= async()=>{
-        try{
-            const respnse = await axios.get(`${baseurl}/get-lead-pipeline/${userid}`);
-            setleadpipeline(respnse.data.data);
-            console.log(respnse.data.data);
-        }catch(err){
-            console.error(err);
-        }
-    }
-    useEffect (()=>{
-        if(!userid){
-            return;
-        }
-        lead_pipeline_analytics();
-    },[userid]);
-
-    const Ai_replySentiments= async() =>{
-        try{
-            const response= await axios.get(`${baseurl}/get-ai-reply-sentiments/${userid}`);
-             setAIreply(response.data.data);
-            console.log(response.data.data);
-
-        }catch(err){
-            console.error(err);
-        }
-    }
-
-    useEffect (()=>{
-        if(!userid){
-            return;
-        }
-        Ai_replySentiments();
-    },[userid]);
-
-    const AI_insights = async() =>{
-        try{
-            const response = await axios.get(`${baseurl}/get-ai-insights/${userid}`);
-            setaiInsights(response.data.data);
-        }catch(err){
-            console.error(err);
-        }
-    }
-
-    useEffect(()=>{
-        if(!userid){
-            return;
-        }
-        AI_insights();
-    },[userid]);
-
-    const AiRecomendation= async()=>{
-        try{
-            const response = await axios.get(`${baseurl}/get-ai-recommendations/${userid}`);
-            console.log("Ai recomendation",response.data.data);
-            setaiRecomendations(response.data.data);
-            
-        }catch(err){
-            console.error(err);
-        }
-    }
-    useEffect(()=>{
-        if(!userid){
-            return;
-        }
-        AiRecomendation();
-    },[userid]);
-
-    const FuturePredictions= async() =>{
-        try{
-            const response = await axios.get(`${baseurl}/get-ai-topics/${userid}`);
-            setaiprediction(response.data.data);
-            console.log(response.data.data);
-        }catch(err){
-            console.error(err);
-        }
-    }
-    useEffect(()=>{
-        if(!userid){
-            return;
-        }
-        FuturePredictions();    
-    },[userid]);
-
-    return (
-        <div className="p-4">
-            <ReportsPageproops
-                countleads={countleads}
-                countcustomer={countcustomer}
-                totalemailsent={totalemailsent}
-                totalreplies={totalreplies}
-                monthlyleads={monthlyleads}
-                emailanalytics={emailanalytics}
-                leadsdata={leadsdata}
-                leadanalytics={leadanalytics}
-                leadpipeline={leadpipeline}
-                AIReply={AIReply}
-                aiInsights={aiInsights}
-                aiRecommendations={aiRecomendations}
-                aiprediction={aiprediction}
-            />
-        </div>
+    sessionStorage.setItem(
+      `dashboard-${userid}`,
+      JSON.stringify({
+        data: response.data.data,
+        time: Date.now(),
+      }),
     );
+  };
+  const loadDashboard = async () => {
+    try {
+      const cacheKey = `dashboard-${userid}`;
+
+      const cachedData = sessionStorage.getItem(cacheKey);
+
+      if (cachedData) {
+        const parsed = JSON.parse(cachedData);
+
+        const FIVE_MINUTES = 5 * 60 * 1000;
+
+        if (Date.now() - parsed.time < FIVE_MINUTES) {
+          console.log("Loaded from Cache");
+
+          setDashboard(parsed.data);
+
+          return;
+        }
+      }
+
+      await fetchDashboard();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!userid) return;
+
+    loadDashboard();
+
+    const interval = setInterval(loadDashboard, 30000); 
+
+    return () => clearInterval(interval);
+  }, [userid]);
+
+  const refreshDashboard = async () => {
+    if (!userid) return;
+
+    try {
+      setRefreshing(true);
+
+      sessionStorage.removeItem(`dashboard-${userid}`);
+
+      await fetchDashboard();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Loading Reports...
+      </div>
+    );
+  }
+
+  return (
+    <ReportsPageproops
+      refreshing={refreshing}
+      onRefresh={refreshDashboard}
+      countleads={dashboard.countLeads}
+      countcustomer={dashboard.customers}
+      totalemailsent={dashboard.emails}
+      totalreplies={dashboard.replies}
+      monthlyleads={dashboard.monthly}
+      emailanalytics={dashboard.emailAnalytics}
+      leadpipeline={dashboard.pipeline}
+      leadanalytics={dashboard.leadAnalytics}
+      averagescore={dashboard.averageScore}
+      conversionrate={dashboard.conversionRate}
+      aiprediction={dashboard.prediction}
+      aiInsights={dashboard.insights}
+      aiRecommendations={dashboard.recommendations}
+      AIReply={dashboard.replySentiments}
+      leadsdata={dashboard.leadsData}
+    />
+  );
 }
