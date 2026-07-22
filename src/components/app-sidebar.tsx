@@ -154,9 +154,9 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      collapsible="icon"
-      className="border-r-0 [&>[data-sidebar=sidebar]]:bg-gradient-to-b [&>[data-sidebar=sidebar]]:from-[#0b1220] [&>[data-sidebar=sidebar]]:via-[#0d1526] [&>[data-sidebar=sidebar]]:to-[#0a0f1c] [&>[data-sidebar=sidebar]]:text-slate-300"
-    >
+  collapsible="icon"
+  className="border-r-0 bg-gradient-to-b from-[#4F46E5] via-[#5B4CF0] to-[#6D28D9] text-white"
+>
       {/* ── Header / Branding ─────────────────────────────────────── */}
       <SidebarHeader className="border-b border-white/[0.06] px-3 py-4 sm:px-4">
         <div className="flex items-center gap-3">
