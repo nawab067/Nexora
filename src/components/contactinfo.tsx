@@ -105,8 +105,7 @@ interface CustomerInfoViewProps {
   onDelete: (id: string) => void;
   onEdit: (id: string) => void;
   dashboardreview: DashboardProps;
-  onRefresh: () => void;
-  refreshing: boolean;
+  
 }
 
 // ─── Avatar colors ────────────────────────────────────────────────────────────
@@ -309,8 +308,7 @@ export default function CustomerInfoView({
   onDelete,
   onEdit,
   dashboardreview,
-  onRefresh,
-  refreshing,
+  
 }: CustomerInfoViewProps) {
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [designationFilter, setDesignationFilter] = useState<Set<string>>(new Set());
