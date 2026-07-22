@@ -123,7 +123,7 @@ export default function SignUpPage({ onSignUp }: { onSignUp: (data: SignUpData) 
         await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
-                redirectTo: `${baseurl}/auth/signup-callback`,
+                redirectTo: "https://nexora-crm-brown.vercel.app/auth/signup-callback",
             },
         });
     };
