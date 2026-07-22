@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
+const baseurl= process.env.NEXT_PUBLIC_BASE_URL
 export default function Callback() {
   const router = useRouter();
 
@@ -20,7 +21,7 @@ export default function Callback() {
         }
 
         const response = await fetch(
-          "http://localhost:8000/google-login",
+          `${baseurl}/google-login`,
           {
             method: "POST",
             credentials: "include",
