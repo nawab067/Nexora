@@ -31,7 +31,7 @@ export default function Auth() {
       );
 
       if (response.data.success) {
-        localStorage.setItem("token", response.data.token); // 🔥 ADD THIS
+        sessionStorage.setItem("token", response.data.token); // 🔥 ADD THIS
         router.push('/admin/dashboard');
       } else {
         setError(response.data.message);

@@ -211,7 +211,7 @@ export default function CustomerForm({ id }: { id?: string }) {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = sessionStorage.getItem('token');
                 if (!token) return;
 
                 const res = await axios.get(`${BASE_URL}/me`, {

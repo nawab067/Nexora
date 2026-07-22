@@ -4,6 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import {
     Table,
     TableBody,
@@ -53,6 +61,7 @@ import {
     Download,
     SlidersHorizontal,
     LayoutGrid,
+    List,
     ChevronLeft,
     ChevronRight,
     Send,
@@ -61,10 +70,15 @@ import {
     CheckCircle2,
     AlertCircle,
     X,
+    Circle,
+    PhoneCall,
+    BadgeCheck,
+    XCircle,
+    Trophy,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Bell, HelpCircle, Settings } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import type { AIEmailDialogState } from "@/app/admin/Lead/page"; // adjust path as needed
 
@@ -114,11 +128,13 @@ interface CustomerInfoViewProps {
     onSendEmail: () => void;
     onEmailSubjectChange: (value: string) => void;
     onEmailBodyChange: (value: string) => void;
+    conversion: number;
+    totalcount: number;
+    totalWinrate: number;
+    
 }
 
 // ─── Avatar colors ────────────────────────────────────────────────────────────
-// Decorative identity colors — kept fixed across themes via /15 opacity tints
-// rather than tied to background/foreground tokens.
 const AVATAR_COLORS = [
     { bg: "bg-blue-500/15", text: "text-blue-600 dark:text-blue-400" },
     { bg: "bg-indigo-500/15", text: "text-indigo-600 dark:text-indigo-400" },
@@ -137,56 +153,50 @@ function LeadAvatar({
     name,
     index,
     imageUrl,
+    size = "h-9 w-9",
 }: {
     name: string;
     index: number;
     imageUrl?: string;
+    size?: string;
 }) {
     const color = AVATAR_COLORS[index % AVATAR_COLORS.length];
-    if (imageUrl) {
-        return (
-            <div className="h-9 w-9 rounded-full overflow-hidden shrink-0 border border-border">
-                <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
-            </div>
-        );
-    }
     return (
-        <div
-            className={cn(
-                "h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
-                color.bg,
-                color.text
-            )}
-        >
-            {getInitials(name)}
-        </div>
+        <Avatar className={cn(size, "shrink-0 border border-border/60")}>
+            {imageUrl && <AvatarImage src={imageUrl} alt={name} className="object-cover" />}
+            <AvatarFallback className={cn(color.bg, color.text, "text-xs font-bold")}>
+                {getInitials(name)}
+            </AvatarFallback>
+        </Avatar>
     );
 }
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 type StatusType = "NEW" | "CONTACTED" | "QUALIFIED" | "LOST" | "WON";
 
-const STATUS_STYLES: Record<StatusType, string> = {
-    NEW: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-    CONTACTED: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-    QUALIFIED: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-    LOST: "bg-rose-500/10 text-rose-500 dark:text-rose-400 border-rose-500/20",
-    WON: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+const STATUS_CONFIG: Record<StatusType, { style: string; icon: React.ElementType }> = {
+    NEW: { style: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20", icon: Circle },
+    CONTACTED: { style: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20", icon: PhoneCall },
+    QUALIFIED: { style: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20", icon: BadgeCheck },
+    LOST: { style: "bg-rose-500/10 text-rose-500 dark:text-rose-400 border-rose-500/20", icon: XCircle },
+    WON: { style: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20", icon: Trophy },
 };
 
 function StatusBadge({ status }: { status: string }) {
     const s = (status?.toUpperCase() ?? "NEW") as StatusType;
-    const style =
-        STATUS_STYLES[s] ?? "bg-muted text-muted-foreground border-border";
+    const config = STATUS_CONFIG[s];
+    const Icon = config?.icon ?? Circle;
     return (
-        <span
+        <Badge
+            variant="outline"
             className={cn(
-                "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border tracking-wide",
-                style
+                "gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide",
+                config?.style ?? "bg-muted text-muted-foreground border-border"
             )}
         >
+            <Icon className="w-3 h-3" />
             {s}
-        </span>
+        </Badge>
     );
 }
 
@@ -209,16 +219,107 @@ function StatCard({
     iconColor?: string;
 }) {
     return (
-        <div className="flex-1 min-w-0 bg-card rounded-xl border border-border shadow-sm p-5">
-            <div className="flex items-start justify-between mb-3">
-                <p className="text-sm text-muted-foreground font-medium leading-snug">{label}</p>
-                <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", iconBg)}>
-                    <Icon className={cn("w-4 h-4", iconColor)} />
+        <Card className="flex-1 min-w-0 shadow-sm border-border/70 hover:shadow-md transition-shadow">
+            <CardContent className="p-5">
+                <div className="flex items-start justify-between mb-3">
+                    <p className="text-sm text-muted-foreground font-medium leading-snug">{label}</p>
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", iconBg)}>
+                        <Icon className={cn("w-4.5 h-4.5", iconColor)} />
+                    </div>
                 </div>
-            </div>
-            <p className="text-3xl font-bold text-foreground tracking-tight mb-1">{value}</p>
-            <p className={cn("text-xs font-medium", subColor)}>{sub}</p>
-        </div>
+                <p className="text-3xl font-bold text-foreground tracking-tight mb-1">{value}</p>
+                <p className={cn("text-xs font-medium", subColor)}>{sub}</p>
+            </CardContent>
+        </Card>
+    );
+}
+
+// ─── Grid card (used when view mode = grid) ───────────────────────────────────
+function LeadCard({
+    customer,
+    index,
+    contactName,
+    onEdit,
+    onDelete,
+    onAIEmail,
+}: {
+    customer: CustomerWithImage;
+    index: number;
+    contactName: string;
+    onEdit: (id: string) => void;
+    onDelete: (id: string) => void;
+    onAIEmail: (customer: CustomerWithImage) => void;
+}) {
+    return (
+        <Card className="border-border/70 shadow-sm hover:shadow-md hover:border-indigo-500/30 transition-all">
+            <CardContent className="p-4">
+                <div className="flex items-center gap-3 mb-3">
+                    <LeadAvatar name={customer.name} index={index} imageUrl={customer.image_url} />
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground truncate">{customer.name}</p>
+                        <a
+                            href={`mailto:${customer.email}`}
+                            className="text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 truncate block"
+                        >
+                            {customer.email}
+                        </a>
+                    </div>
+                </div>
+                <div className="flex items-center justify-between mb-3">
+                    <StatusBadge status={customer.status || ""} />
+                    <span className="text-sm font-semibold text-foreground truncate max-w-[45%]">
+                        {contactName}
+                    </span>
+                </div>
+                <p className="text-xs text-muted-foreground truncate mb-3">
+                    {customer.leadsource || "—"}
+                </p>
+                <Separator className="mb-2" />
+                <div className="flex items-center justify-end gap-1">
+                    <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
+                                    onClick={() => onEdit(customer._id)}
+                                >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Edit</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                                    onClick={() => onDelete(customer._id)}
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Delete</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10"
+                                    onClick={() => onAIEmail(customer)}
+                                >
+                                    <Sparkles className="h-3.5 w-3.5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">AI Email</TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -239,7 +340,6 @@ function AIEmailDialog({
     return (
         <Dialog open={aiEmail.open} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="max-w-2xl w-full p-0 overflow-hidden rounded-2xl gap-0">
-                {/* ── Header ── */}
                 <DialogHeader className="px-6 pt-6 pb-4 border-b border-border bg-gradient-to-r from-indigo-500/10 to-transparent">
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-indigo-500/15 flex items-center justify-center shrink-0">
@@ -259,9 +359,7 @@ function AIEmailDialog({
                     </div>
                 </DialogHeader>
 
-                {/* ── Body ── */}
                 <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
-                    {/* Loading state */}
                     {aiEmail.loading && (
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 font-medium">
@@ -283,7 +381,6 @@ function AIEmailDialog({
                         </div>
                     )}
 
-                    {/* Error state */}
                     {!aiEmail.loading && aiEmail.error && (
                         <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
                             <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400 mt-0.5 shrink-0" />
@@ -291,7 +388,6 @@ function AIEmailDialog({
                         </div>
                     )}
 
-                    {/* Success / sent state */}
                     {!aiEmail.loading && aiEmail.sent && (
                         <div className="flex flex-col items-center gap-3 py-8">
                             <div className="w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center">
@@ -307,10 +403,8 @@ function AIEmailDialog({
                         </div>
                     )}
 
-                    {/* Email preview / edit */}
                     {!aiEmail.loading && !aiEmail.sent && !aiEmail.error && (
                         <div className="space-y-4">
-                            {/* To field */}
                             <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-muted border border-border">
                                 <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -332,7 +426,6 @@ function AIEmailDialog({
                                 </Badge>
                             </div>
 
-                            {/* Subject */}
                             <div className="space-y-1.5">
                                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                     Subject
@@ -345,7 +438,6 @@ function AIEmailDialog({
                                 />
                             </div>
 
-                            {/* Body */}
                             <div className="space-y-1.5">
                                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                     Message
@@ -367,7 +459,6 @@ function AIEmailDialog({
                     )}
                 </div>
 
-                {/* ── Footer ── */}
                 {!aiEmail.loading && (
                     <DialogFooter className="px-6 py-4 border-t border-border bg-muted/40 flex-row items-center justify-between sm:justify-between gap-3">
                         <Button
@@ -449,9 +540,43 @@ export default function CustomerInfoView({
     onSendEmail,
     onEmailSubjectChange,
     onEmailBodyChange,
+    conversion,
+    totalcount,
+    totalWinrate,
+   
+
 }: CustomerInfoViewProps): import("react").JSX.Element {
     const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
     const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
+
+    const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+    const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
+
+    const uniqueStatuses = useMemo(
+        () =>
+            Array.from(
+                new Set(filtered.map((c) => (c.status || "").toUpperCase()).filter(Boolean))
+            ) as string[],
+        [filtered]
+    );
+
+    const toggleStatus = (s: string) => {
+        setStatusFilter((prev) => {
+            const next = new Set(prev);
+            next.has(s) ? next.delete(s) : next.add(s);
+            return next;
+        });
+    };
+
+    const displayRows = useMemo(
+        () =>
+            statusFilter.size === 0
+                ? paginated
+                : paginated.filter(
+                      (c) => c.status && statusFilter.has(c.status.toUpperCase())
+                  ),
+        [paginated, statusFilter]
+    );
 
     useEffect(() => {
         async function loadCustomerNames() {
@@ -498,7 +623,6 @@ export default function CustomerInfoView({
 
     return (
         <>
-            {/* ── AI Email Dialog (rendered at root level, always available) ── */}
             <AIEmailDialog
                 aiEmail={aiEmail}
                 onClose={onCloseEmailDialog}
@@ -508,7 +632,7 @@ export default function CustomerInfoView({
             />
 
             {/* ── Navbar ── */}
-            <header className="sticky top-0 z-10 h-14 bg-background border-b border-border flex items-center px-4 gap-3 shrink-0">
+            <header className="sticky top-0 z-10 h-14 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border flex items-center px-4 gap-3 shrink-0">
                 <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
                 <Separator orientation="vertical" className="h-5" />
                 <div className="flex items-center gap-2 flex-1 max-w-sm">
@@ -520,19 +644,21 @@ export default function CustomerInfoView({
                     />
                 </div>
                 <div className="flex items-center gap-1 ml-auto">
-                    <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                    <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground">
                         <Bell className="w-4 h-4" />
-                    </button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                    </Button>
+                    <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground">
                         <HelpCircle className="w-4 h-4" />
-                    </button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                    </Button>
+                    <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground">
                         <Settings className="w-4 h-4" />
-                    </button>
+                    </Button>
                     <Separator orientation="vertical" className="h-5 mx-2" />
-                    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                        AR
-                    </div>
+                    <Avatar className="w-8 h-8">
+                        <AvatarFallback className="bg-indigo-600 text-white text-xs font-bold">
+                            AR
+                        </AvatarFallback>
+                    </Avatar>
                 </div>
             </header>
 
@@ -553,7 +679,7 @@ export default function CustomerInfoView({
                             variant="outline"
                             size="sm"
                             onClick={exportCSV}
-                            className="h-9 text-sm gap-1.5 border-border text-muted-foreground rounded-lg"
+                            className="h-9 text-sm gap-1.5 rounded-lg"
                         >
                             <Download className="w-4 h-4" />
                             Export CSV
@@ -568,9 +694,10 @@ export default function CustomerInfoView({
                         </Button>
                     </div>
                 </div>
+  
+  
 
-
-                <div className="flex gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     <StatCard
                         icon={Users}
                         label="Total Active Leads"
@@ -581,8 +708,8 @@ export default function CustomerInfoView({
                     />
                     <StatCard
                         icon={DollarSign}
-                        label="Pipeline Value"
-                        value="0"
+                        label="Total Customer"
+                        value={totalcount.toString()}
                         sub="Goal: $0 this quarter"
                         subColor="text-muted-foreground"
                         iconBg="bg-emerald-500/10"
@@ -591,7 +718,7 @@ export default function CustomerInfoView({
                     <StatCard
                         icon={TrendingUp}
                         label="Conversion Rate"
-                        value="0%"
+                        value={conversion.toString()}
                         sub="Nurture time: 14 days avg"
                         subColor="text-muted-foreground"
                         iconBg="bg-violet-500/10"
@@ -600,286 +727,347 @@ export default function CustomerInfoView({
                     <StatCard
                         icon={BarChart2}
                         label="Win Rate"
-                        value="0%"
+                        value={totalWinrate.toString()}
                         sub="+5% vs Q3 baseline"
-                        iconBg="bg-indigo-600"
-                        iconColor="text-white"
+                        iconBg="bg-indigo-500/10"
+                        iconColor="text-indigo-600 dark:text-indigo-400"
                     />
                 </div>
 
+                {/* Toolbar */}
+                <Card className="border-border/70 shadow-sm">
+                    <CardContent className="p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                                <Input
+                                    placeholder="Search leads…"
+                                    value={search}
+                                    onChange={(e) => onSearchChange(e.target.value)}
+                                    className="pl-8 h-9 w-56 text-sm rounded-lg bg-muted border-border focus-visible:ring-1"
+                                />
+                            </div>
 
-                <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-2.5 shadow-sm">
-                    <div className="flex items-center gap-1">
-                        <div className="flex items-center rounded-lg bg-muted p-0.5">
-                            {(["all", "my", "team"] as const).map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => onTabChange(tab)}
-                                    className={cn(
-                                        "px-3 py-1.5 text-sm font-medium rounded-md transition-colors capitalize",
-                                        activeTab === tab
-                                            ? "bg-indigo-600 text-white shadow-sm"
-                                            : "text-muted-foreground hover:text-foreground"
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className={cn(
+                                            "h-9 w-9 rounded-lg relative",
+                                            statusFilter.size > 0 &&
+                                                "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                                        )}
+                                    >
+                                        <SlidersHorizontal className="w-4 h-4" />
+                                        {statusFilter.size > 0 && (
+                                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] flex items-center justify-center font-semibold">
+                                                {statusFilter.size}
+                                            </span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent align="start" className="w-56 p-2">
+                                    <p className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
+                                        Filter by status
+                                    </p>
+                                    {uniqueStatuses.length === 0 && (
+                                        <p className="text-xs text-muted-foreground px-2 py-1.5">
+                                            No statuses yet
+                                        </p>
                                     )}
-                                >
-                                    {tab === "all"
-                                        ? "All Leads"
-                                        : tab === "my"
-                                            ? "My Leads"
-                                            : "Team"}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="w-px h-5 bg-border mx-2" />
-                        <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground border border-border rounded-lg hover:bg-accent transition-colors">
-                            All Statuses
-                            <span className="text-muted-foreground">▾</span>
-                        </button>
-                        <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground border border-border rounded-lg hover:bg-accent transition-colors ml-1">
-                            Date Range: Last 30 Days
-                            <span className="text-muted-foreground">▾</span>
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="relative">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                            <Input
-                                placeholder="Search leads…"
-                                value={search}
-                                onChange={(e) => onSearchChange(e.target.value)}
-                                className="pl-8 h-8 w-52 text-sm rounded-lg bg-muted border-border focus-visible:ring-1"
-                            />
-                        </div>
-                        <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-accent transition-colors">
-                            <SlidersHorizontal className="w-4 h-4" />
-                        </button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-accent transition-colors">
-                            <LayoutGrid className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Table card */}
-                <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-muted/50 border-b border-border hover:bg-muted/50">
-                                <TableHead className="w-10 pl-4">
-                                    <Checkbox
-                                        checked={allSelected}
-                                        onCheckedChange={onToggleAll}
-                                        className="rounded"
-                                    />
-                                </TableHead>
-                                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">
-                                    Lead Name
-                                </TableHead>
-                                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                    Status
-                                </TableHead>
-                                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                    Contact
-                                </TableHead>
-                                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">
-                                    Lead Source
-                                </TableHead>
-                                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right pr-5">
-                                    Actions
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-
-                        <TableBody>
-                            {/* Skeletons */}
-                            {loading &&
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <TableRow key={i} className="border-b border-border">
-                                        <TableCell className="pl-4">
-                                            <Skeleton className="h-4 w-4 rounded" />
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Skeleton className="h-9 w-9 rounded-full" />
-                                                <div className="space-y-1.5">
-                                                    <Skeleton className="h-3.5 w-28" />
-                                                    <Skeleton className="h-3 w-36" />
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Skeleton className="h-3.5 w-28" />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Skeleton className="h-5 w-20 rounded-full" />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Skeleton className="h-3.5 w-16" />
-                                        </TableCell>
-                                        <TableCell className="hidden md:table-cell">
-                                            <Skeleton className="h-3.5 w-24" />
-                                        </TableCell>
-                                        <TableCell className="pr-5">
-                                            <Skeleton className="h-6 w-20 ml-auto" />
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-
-                            {/* Empty state */}
-                            {!loading && filtered.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="py-16 text-center">
-                                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                                            <Users className="h-10 w-10 opacity-20" />
-                                            <p className="text-sm font-semibold text-foreground">
-                                                No leads found
-                                            </p>
-                                            {search && (
-                                                <p className="text-xs">Try a different search term</p>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            )}
-
-                            {/* Rows */}
-                            {!loading &&
-                                paginated.map((customer, i) => {
-                                    const globalIndex = (page - 1) * pageSize + i;
-                                    const isSelected = selectedIds.has(customer._id);
-                                    return (
-                                        <TableRow
-                                            key={customer._id}
-                                            className={cn(
-                                                "group border-b border-border transition-colors last:border-0",
-                                                isSelected ? "bg-indigo-500/5" : "hover:bg-muted/40"
-                                            )}
+                                    {uniqueStatuses.map((s) => (
+                                        <label
+                                            key={s}
+                                            className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer text-sm"
                                         >
-                                            <TableCell className="pl-4">
-                                                <Checkbox
-                                                    checked={isSelected}
-                                                    onCheckedChange={() => onToggleOne(customer._id)}
-                                                    className="rounded"
-                                                />
-                                            </TableCell>
+                                            <Checkbox
+                                                checked={statusFilter.has(s)}
+                                                onCheckedChange={() => toggleStatus(s)}
+                                            />
+                                            {s}
+                                        </label>
+                                    ))}
+                                    {statusFilter.size > 0 && (
+                                        <button
+                                            onClick={() => setStatusFilter(new Set())}
+                                            className="w-full text-xs text-rose-500 hover:text-rose-600 px-2 py-1.5 text-left"
+                                        >
+                                            Clear filters
+                                        </button>
+                                    )}
+                                </PopoverContent>
+                            </Popover>
 
-                                            <TableCell className="py-3">
+                            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "table" | "grid")}>
+                                <TabsList className="h-9">
+                                    <TabsTrigger value="table" className="h-7 px-3 gap-1.5 text-xs">
+                                        <List className="w-3.5 h-3.5" />
+                                        Table
+                                    </TabsTrigger>
+                                    <TabsTrigger value="grid" className="h-7 px-3 gap-1.5 text-xs">
+                                        <LayoutGrid className="w-3.5 h-3.5" />
+                                        Grid
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Table / Grid card */}
+                <Card className="border-border/70 shadow-sm overflow-hidden p-0">
+                    {viewMode === "table" ? (
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-muted/50 border-b border-border hover:bg-muted/50">
+                                    <TableHead className="w-10 pl-4">
+                                        <Checkbox
+                                            checked={allSelected}
+                                            onCheckedChange={onToggleAll}
+                                            className="rounded"
+                                        />
+                                    </TableHead>
+                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">
+                                        Lead Name
+                                    </TableHead>
+                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Status
+                                    </TableHead>
+                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Contact
+                                    </TableHead>
+                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">
+                                        Lead Source
+                                    </TableHead>
+                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right pr-5">
+                                        Actions
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+
+                            <TableBody>
+                                {loading &&
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <TableRow key={i} className="border-b border-border">
+                                            <TableCell className="pl-4">
+                                                <Skeleton className="h-4 w-4 rounded" />
+                                            </TableCell>
+                                            <TableCell>
                                                 <div className="flex items-center gap-3">
-                                                    <LeadAvatar
-                                                        name={customer.name}
-                                                        index={globalIndex}
-                                                        imageUrl={customer.image_url}
-                                                    />
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-foreground leading-tight">
-                                                            {customer.name}
-                                                        </p>
-                                                        <a
-                                                            href={`mailto:${customer.email}`}
-                                                            className="text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                                                        >
-                                                            {customer.email}
-                                                        </a>
+                                                    <Skeleton className="h-9 w-9 rounded-full" />
+                                                    <div className="space-y-1.5">
+                                                        <Skeleton className="h-3.5 w-28" />
+                                                        <Skeleton className="h-3 w-36" />
                                                     </div>
                                                 </div>
                                             </TableCell>
-
                                             <TableCell>
-                                                <StatusBadge status={customer.status || ""} />
+                                                <Skeleton className="h-5 w-20 rounded-full" />
                                             </TableCell>
-
                                             <TableCell>
-                                                <span className="text-sm font-semibold text-foreground">
-                                                    {customer.customerid
-                                                        ? customerNames[customer.customerid] || "Loading..."
-                                                        : "—"}
-                                                </span>
+                                                <Skeleton className="h-3.5 w-16" />
                                             </TableCell>
-
                                             <TableCell className="hidden md:table-cell">
-                                                <span className="text-sm text-muted-foreground">
-                                                    {customer.leadsource || "—"}
-                                                </span>
+                                                <Skeleton className="h-3.5 w-24" />
                                             </TableCell>
-
                                             <TableCell className="pr-5">
-                                                <TooltipProvider delayDuration={100}>
-                                                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button
-                                                                    size="icon"
-                                                                    variant="ghost"
-                                                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
-                                                                    onClick={() => onEdit(customer._id)}
-                                                                >
-                                                                    <Pencil className="h-3.5 w-3.5" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="top">Edit</TooltipContent>
-                                                        </Tooltip>
-
-                                                        <AlertDialog>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <AlertDialogTrigger asChild>
-                                                                        <Button
-                                                                            size="icon"
-                                                                            variant="ghost"
-                                                                            className="h-8 w-8 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
-                                                                        >
-                                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                                        </Button>
-                                                                    </AlertDialogTrigger>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent side="top">Delete</TooltipContent>
-                                                            </Tooltip>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>Delete lead?</AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        This will permanently remove{" "}
-                                                                        <span className="font-semibold text-foreground">
-                                                                            {customer.name}
-                                                                        </span>{" "}
-                                                                        and cannot be undone.
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                    <AlertDialogAction
-                                                                        className="bg-destructive hover:bg-destructive/90"
-                                                                        onClick={() => onDelete(customer._id)}
-                                                                    >
-                                                                        Delete
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button
-                                                                    size="icon"
-                                                                    variant="ghost"
-                                                                    className="h-8 w-8 rounded-lg text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-500/10"
-                                                                    onClick={() => onAIEmail(customer)}
-                                                                >
-                                                                    <Sparkles className="h-3.5 w-3.5" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="top">AI Email</TooltipContent>
-                                                        </Tooltip>
-                                                    </div>
-                                                </TooltipProvider>
+                                                <Skeleton className="h-6 w-20 ml-auto" />
                                             </TableCell>
                                         </TableRow>
-                                    );
-                                })}
-                        </TableBody>
-                    </Table>
+                                    ))}
+
+                                {!loading && displayRows.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="py-16 text-center">
+                                            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                                <Users className="h-10 w-10 opacity-20" />
+                                                <p className="text-sm font-semibold text-foreground">
+                                                    No leads found
+                                                </p>
+                                                {(search || statusFilter.size > 0) && (
+                                                    <p className="text-xs">Try a different search or filter</p>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+
+                                {!loading &&
+                                    displayRows.map((customer, i) => {
+                                        const globalIndex = (page - 1) * pageSize + i;
+                                        const isSelected = selectedIds.has(customer._id);
+                                        return (
+                                            <TableRow
+                                                key={customer._id}
+                                                className={cn(
+                                                    "group border-b border-border transition-colors last:border-0",
+                                                    isSelected ? "bg-indigo-500/5" : "hover:bg-muted/40"
+                                                )}
+                                            >
+                                                <TableCell className="pl-4">
+                                                    <Checkbox
+                                                        checked={isSelected}
+                                                        onCheckedChange={() => onToggleOne(customer._id)}
+                                                        className="rounded"
+                                                    />
+                                                </TableCell>
+
+                                                <TableCell className="py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <LeadAvatar
+                                                            name={customer.name}
+                                                            index={globalIndex}
+                                                            imageUrl={customer.image_url}
+                                                        />
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-foreground leading-tight">
+                                                                {customer.name}
+                                                            </p>
+                                                            <a
+                                                                href={`mailto:${customer.email}`}
+                                                                className="text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                                                            >
+                                                                {customer.email}
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+
+                                                <TableCell>
+                                                    <StatusBadge status={customer.status || ""} />
+                                                </TableCell>
+
+                                                <TableCell>
+                                                    <span className="text-sm font-semibold text-foreground">
+                                                        {customer.customerid
+                                                            ? customerNames[customer.customerid] || "Loading..."
+                                                            : "—"}
+                                                    </span>
+                                                </TableCell>
+
+                                                <TableCell className="hidden md:table-cell">
+                                                    <span className="text-sm text-muted-foreground">
+                                                        {customer.leadsource || "—"}
+                                                    </span>
+                                                </TableCell>
+
+                                                <TableCell className="pr-5">
+                                                    <TooltipProvider delayDuration={100}>
+                                                        <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        size="icon"
+                                                                        variant="ghost"
+                                                                        className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
+                                                                        onClick={() => onEdit(customer._id)}
+                                                                    >
+                                                                        <Pencil className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top">Edit</TooltipContent>
+                                                            </Tooltip>
+
+                                                            <AlertDialog>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <AlertDialogTrigger asChild>
+                                                                            <Button
+                                                                                size="icon"
+                                                                                variant="ghost"
+                                                                                className="h-8 w-8 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                                                                            >
+                                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                                            </Button>
+                                                                        </AlertDialogTrigger>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent side="top">Delete</TooltipContent>
+                                                                </Tooltip>
+                                                                <AlertDialogContent>
+                                                                    <AlertDialogHeader>
+                                                                        <AlertDialogTitle>Delete lead?</AlertDialogTitle>
+                                                                        <AlertDialogDescription>
+                                                                            This will permanently remove{" "}
+                                                                            <span className="font-semibold text-foreground">
+                                                                                {customer.name}
+                                                                            </span>{" "}
+                                                                            and cannot be undone.
+                                                                        </AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <AlertDialogFooter>
+                                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                        <AlertDialogAction
+                                                                            className="bg-destructive hover:bg-destructive/90"
+                                                                            onClick={() => onDelete(customer._id)}
+                                                                        >
+                                                                            Delete
+                                                                        </AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
+
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        size="icon"
+                                                                        variant="ghost"
+                                                                        className="h-8 w-8 rounded-lg text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-500/10"
+                                                                        onClick={() => onAIEmail(customer)}
+                                                                    >
+                                                                        <Sparkles className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top">AI Email</TooltipContent>
+                                                            </Tooltip>
+                                                        </div>
+                                                    </TooltipProvider>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="p-4">
+                            {loading ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    {Array.from({ length: 6 }).map((_, i) => (
+                                        <Skeleton key={i} className="h-40 rounded-xl" />
+                                    ))}
+                                </div>
+                            ) : displayRows.length === 0 ? (
+                                <div className="flex flex-col items-center gap-2 text-muted-foreground py-16">
+                                    <Users className="h-10 w-10 opacity-20" />
+                                    <p className="text-sm font-semibold text-foreground">No leads found</p>
+                                    {(search || statusFilter.size > 0) && (
+                                        <p className="text-xs">Try a different search or filter</p>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    {displayRows.map((customer, i) => (
+                                        <LeadCard
+                                            key={customer._id}
+                                            customer={customer}
+                                            index={(page - 1) * pageSize + i}
+                                            contactName={
+                                                customer.customerid
+                                                    ? customerNames[customer.customerid] || "Loading..."
+                                                    : "—"
+                                            }
+                                            onEdit={onEdit}
+                                            onDelete={onDelete}
+                                            onAIEmail={onAIEmail}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Footer / Pagination */}
-                    <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+                    <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-muted/20">
                         <p className="text-sm text-muted-foreground">
                             Showing{" "}
                             {filtered.length === 0 ? 0 : (page - 1) * pageSize + 1}–
@@ -890,23 +1078,27 @@ export default function CustomerInfoView({
                             leads
                         </p>
                         <div className="flex items-center gap-1">
-                            <button
+                            <Button
+                                variant="outline"
+                                size="icon"
                                 onClick={() => onPageChange(Math.max(1, page - 1))}
                                 disabled={page === 1}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                className="w-8 h-8 rounded-lg"
                             >
                                 <ChevronLeft className="w-4 h-4" />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
                                 onClick={() => onPageChange(Math.min(totalPages, page + 1))}
                                 disabled={page === totalPages}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                className="w-8 h-8 rounded-lg"
                             >
                                 <ChevronRight className="w-4 h-4" />
-                            </button>
+                            </Button>
                         </div>
                     </div>
-                </div>
+                </Card>
             </div>
         </>
     );

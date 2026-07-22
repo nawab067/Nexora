@@ -43,13 +43,15 @@ export default function Callback() {
           router.replace("/auth/signup");
           return;
         }
+        console.log("Before session");
 
-        localStorage.setItem("token", result.token);
+        sessionStorage.setItem("token", result.token);
 
-        localStorage.setItem(
+        sessionStorage.setItem(
           "user",
           JSON.stringify(result.user)
         );
+        console.log("After session");
 
         router.replace("/admin/dashboard");
 

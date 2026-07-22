@@ -33,6 +33,7 @@ interface DashboardData {
 export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const [dashboard, setDashboard] = useState<DashboardData>({
     countLeads: 0,
@@ -63,7 +64,7 @@ export default function ReportsPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token");
 
         if (!token) return;
 
@@ -126,15 +127,12 @@ export default function ReportsPage() {
     }
   };
 
-  useEffect(() => {
-    if (!userid) return;
+ useEffect(() => {
+  if (!userid || loaded) return;
 
-    loadDashboard();
-
-    const interval = setInterval(loadDashboard, 30000); 
-
-    return () => clearInterval(interval);
-  }, [userid]);
+  loadDashboard();
+  setLoaded(true);
+}, [userid, loaded]);
 
   const refreshDashboard = async () => {
     if (!userid) return;

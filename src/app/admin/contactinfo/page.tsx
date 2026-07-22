@@ -26,6 +26,13 @@ export default function ContactInfoPage() {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [search, setSearch] = useState('');
     const [activeTab, setActiveTab] = useState<'all' | 'my' | 'team'>('all');
+    const [dashboard, setDashboard] = useState({
+    customers: 0,
+    leads: 0,
+    pipeline_value: 0,
+    conversion_rate: 0,
+    win_rate: 0
+});
 
 
     const [page, setPage] = useState(1);
@@ -34,24 +41,28 @@ export default function ContactInfoPage() {
     const router = useRouter();
 
     useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) return;
-                const res = await axios.get(`${baseurl}/me`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-                setUserid(res.data.id);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchUser();
-    }, []);
+    const fetchUser = async () => {
+        try {
+            const token = sessionStorage.getItem("token");
+
+            if (!token) return;
+
+            const res = await axios.get(`${baseurl}/me`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            setUserid(res.data.id);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchUser();
+}, []);
 
     async function fetchallcontacts() {
         try {
@@ -147,10 +158,28 @@ export default function ContactInfoPage() {
         console.log('add customer');
     }
 
+    const get_Dashboard=  async() =>{
+        try{
+            const response = await axios.get(`${baseurl}/contactinfo/summary/${userid}`);
+             setDashboard(response.data);
+        }catch(err){
+            console.log(err);
+        }
+    }
+
+    useEffect(()=>{
+        if(!userid)
+        {
+            return;
+        }
+        get_Dashboard();
+    },[userid]);
+
 
 
     return (
         <ContactInfoView
+            dashboardreview= {dashboard}
             customerData={contacts}
             loading={loading}
             filtered={filtered}

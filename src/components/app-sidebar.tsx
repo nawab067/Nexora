@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import axios from "axios"
-const baseurl = process.env.NEXT_PUBLIC_BASE_URL
+import * as React from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import axios from "axios";
+const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
 
 import {
   LayoutDashboard,
@@ -15,7 +15,7 @@ import {
   BarChart2,
   Settings,
   LogOut,
-} from "lucide-react"
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -28,7 +28,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 const navItems = [
   {
@@ -61,32 +61,30 @@ const navItems = [
     url: "/admin/settings",
     icon: Settings,
   },
-]
-
-
+];
 
 export function AppSidebar() {
-  const pathname = usePathname()
-  const router = useRouter()
+  const pathname = usePathname();
+  const router = useRouter();
 
   const [username, setUsername] = useState<string | null>(null);
   const [profession, setprofesion] = useState<string | null>(null);
   const [loading, setloading] = useState(true);
 
-  const baseurl = process.env.NEXT_PUBLIC_BASE_URL
+  const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
   const [userid, setUserid] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token");
 
         if (!token) return;
 
         const res = await axios.get(`${baseurl}/me`, {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         setUserid(res.data.id); // or res.data.user_id depending on backend
@@ -107,14 +105,13 @@ export function AppSidebar() {
 
       setloading(false);
     } catch (err) {
-      console.log(err)
+      console.log(err);
     }
   }
   useEffect(() => {
     if (!userid) return;
     getUsername();
   }, [userid]);
-
 
   async function getProfession() {
     try {
@@ -125,7 +122,7 @@ export function AppSidebar() {
 
       setloading(false);
     } catch (err) {
-      console.log(err)
+      console.log(err);
     }
   }
 
@@ -134,20 +131,18 @@ export function AppSidebar() {
     getProfession();
   }, [userid]);
 
-
-
   const handleLogout = async () => {
     try {
       await axios.post(
         `${baseurl}/logout`,
         {},
         {
-          withCredentials: true, 
-        }
+          withCredentials: true,
+        },
       );
 
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
 
       router.push("/auth");
     } catch (error) {
@@ -189,7 +184,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
               {navItems.map((item) => {
-                const isActive = pathname === item.url
+                const isActive = pathname === item.url;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
@@ -212,7 +207,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                )
+                );
               })}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -245,11 +240,13 @@ export function AppSidebar() {
               className="h-9 rounded-lg px-3 text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all duration-150"
             >
               <LogOut className="size-4 shrink-0" />
-              <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+              <span className="group-data-[collapsible=icon]:hidden">
+                Logout
+              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

@@ -17,7 +17,7 @@ export default function AdminDashboardContainer() {
   useEffect(() => {
     const verifyUser = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token");
 
         if (!token) {
           router.replace("/auth/login");

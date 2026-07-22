@@ -1,16 +1,26 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Trash2, Mail, Clock, Bell, HelpCircle, Settings, Search, RefreshCw, Inbox, AlertTriangle, X, CheckSquare } from "lucide-react";
+import {
+    Trash2,
+    Mail,
+    Clock,
+    Bell,
+    HelpCircle,
+    Settings,
+    Search,
+    RefreshCw,
+    Inbox,
+    AlertTriangle,
+    X,
+    CheckSquare,
+    ArrowLeft,
+    Reply,
+    MailOpen,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription
-} from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -26,7 +36,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import axios from "axios";
 
 // ─── Data shape (matches your /email-replies/user/:id response) ───────────────
@@ -47,8 +57,8 @@ interface RemindersViewProps {
     onSync?: () => void;
     onReplyClick?: (reply: EmailReply) => void;
     onDeleted?: (id: string) => void; // single delete
-    onBulkDeleted?: (ids: string[]) => void; // NEW: bulk delete
-} 
+    onBulkDeleted?: (ids: string[]) => void; // bulk delete
+}
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function getInitials(email: string) {
@@ -84,30 +94,30 @@ function timeAgo(dateString: string) {
     if (diffHr < 24) return `${diffHr}h ago`;
     if (diffDay < 7) return `${diffDay}d ago`;
 
-    return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-const LONG_PRESS_MS = 500;
+const LONG_PRESS_MS = 450;
 
-// ─── Reminder card ──────────────────────────────────────────────────────────────
-export function ReminderCard({
+// ─── Inbox row ──────────────────────────────────────────────────────────────
+function ReminderRow({
     reply,
+    active,
     onClick,
-    selectionMode = false,
-    selected = false,
+    selectionMode,
+    selected,
     onLongPress,
     onToggleSelect,
+    onQuickDelete,
 }: {
     reply: EmailReply;
+    active: boolean;
     onClick: () => void;
-    selectionMode?: boolean;
-    selected?: boolean;
-    onLongPress?: () => void;
-    onToggleSelect?: () => void;
+    selectionMode: boolean;
+    selected: boolean;
+    onLongPress: () => void;
+    onToggleSelect: () => void;
+    onQuickDelete: () => void;
 }) {
     const color = AVATAR_COLORS[hashString(reply.customer_email) % AVATAR_COLORS.length];
     const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -117,28 +127,22 @@ export function ReminderCard({
         firedLongPress.current = false;
         pressTimer.current = setTimeout(() => {
             firedLongPress.current = true;
-            onLongPress?.();
+            onLongPress();
         }, LONG_PRESS_MS);
     };
-
     const clearPress = () => {
         if (pressTimer.current) {
             clearTimeout(pressTimer.current);
             pressTimer.current = null;
         }
     };
-
     const handleClick = () => {
-        // Swallow the click that follows a long-press fire
         if (firedLongPress.current) {
             firedLongPress.current = false;
             return;
         }
-        if (selectionMode) {
-            onToggleSelect?.();
-        } else {
-            onClick();
-        }
+        if (selectionMode) onToggleSelect();
+        else onClick();
     };
 
     return (
@@ -148,72 +152,88 @@ export function ReminderCard({
             onPointerLeave={clearPress}
             onPointerCancel={clearPress}
             onContextMenu={(e) => {
-                // Right-click on desktop also enters selection mode
                 e.preventDefault();
-                if (!selectionMode) onLongPress?.();
+                if (!selectionMode) onLongPress();
             }}
             onClick={handleClick}
             className={cn(
-                "group flex gap-3 p-4 rounded-xl border transition-colors cursor-pointer select-none",
-                selected
-                    ? "border-indigo-500/40 bg-indigo-500/5"
-                    : "border-border bg-card hover:bg-muted/40"
+                "group relative flex items-center gap-3 px-3 py-3 border-b border-border cursor-pointer select-none transition-colors",
+                active
+                    ? "bg-indigo-500/[0.07]"
+                    : selected
+                    ? "bg-indigo-500/5"
+                    : "hover:bg-muted/50"
             )}
         >
-            {selectionMode && (
-                <div className="flex items-center shrink-0">
-                    <Checkbox
-                        checked={selected}
-                        onCheckedChange={() => onToggleSelect?.()}
-                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                        className="h-4.5 w-4.5"
-                    />
-                </div>
+            {active && (
+                <span className="absolute left-0 top-0 h-full w-[3px] bg-indigo-600 rounded-r" />
             )}
 
-            <div className={cn(
-                "h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
-                color.bg, color.text
-            )}>
+            {/* checkbox: visible always in selection mode, fades in on hover otherwise */}
+            <div
+                className={cn(
+                    "shrink-0 transition-opacity",
+                    selectionMode ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                )}
+            >
+                <Checkbox
+                    checked={selected}
+                    onCheckedChange={() => onToggleSelect()}
+                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                    className="h-4 w-4"
+                />
+            </div>
+
+            <div
+                className={cn(
+                    "h-9 w-9 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
+                    color.bg,
+                    color.text
+                )}
+            >
                 {getInitials(reply.customer_email)}
             </div>
 
             <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">
-                            {reply.subject}
-                        </p>
-                        
-                        <a
-                            href={`mailto:${reply.customer_email}`}
-                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                            className="text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                <div className="flex items-center justify-between gap-2">
+                    <span
+                        className={cn(
+                            "text-sm truncate",
+                            !reply.is_read ? "font-semibold text-foreground" : "font-medium text-foreground/80"
+                        )}
+                    >
+                        {reply.customer_email}
+                    </span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                            {timeAgo(reply.received_at)}
+                        </span>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onQuickDelete();
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10"
+                            title="Delete"
                         >
-                            {reply.customer_email}
-                        </a>
-                    </div>
-                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground shrink-0 whitespace-nowrap">
-                        <Clock className="w-3 h-3" />
-                        {timeAgo(reply.received_at)}
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                     </span>
                 </div>
-
-                <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2">
-                    {reply.message}
+                <p
+                    className={cn(
+                        "text-[13px] truncate mt-0.5",
+                        !reply.is_read ? "text-foreground font-medium" : "text-muted-foreground"
+                    )}
+                >
+                    {reply.subject}
                 </p>
-
-                {!reply.is_read && (
-                    <div className="mt-2">
-                        <Badge
-                            variant="outline"
-                            className="text-[10px] font-semibold border-indigo-500/20 bg-indigo-500/10 text-indigo-600"
-                        >
-                            NEW REPLY
-                        </Badge>
-                    </div>
-                )}
+                <p className="text-xs text-muted-foreground truncate mt-0.5">{reply.message}</p>
             </div>
+
+            {!reply.is_read && (
+                <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" />
+            )}
         </div>
     );
 }
@@ -221,7 +241,7 @@ export function ReminderCard({
 // ─── "Not wired up" alert ────────────────────────────────────────────────────
 function NotConnectedAlert() {
     return (
-        <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-500/20 bg-amber-500/10">
+        <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-500/20 bg-amber-500/10 m-4">
             <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" />
             </div>
@@ -250,20 +270,33 @@ export default function RemindersView({
     onReplyClick,
     onDeleted,
     onBulkDeleted,
-    
 }: RemindersViewProps) {
     const isDisconnected = reminders === undefined;
     const safeReminders = reminders ?? [];
+    const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
+
     const [selectedReply, setSelectedReply] = useState<EmailReply | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<EmailReply | null>(null);
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
+
+    const [filter, setFilter] = useState<"all" | "unread">("all");
 
     // ── Multi-select state ──
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
     const [bulkDeleting, setBulkDeleting] = useState(false);
+
+    const unreadCount = useMemo(
+        () => safeReminders.filter((r) => !r.is_read).length,
+        [safeReminders]
+    );
+
+    const visibleReminders = useMemo(
+        () => (filter === "unread" ? safeReminders.filter((r) => !r.is_read) : safeReminders),
+        [safeReminders, filter]
+    );
 
     const enterSelectionMode = (id: string) => {
         setSelectionMode(true);
@@ -275,7 +308,6 @@ export default function RemindersView({
             const next = new Set(prev);
             if (next.has(id)) next.delete(id);
             else next.add(id);
-            // Auto-exit selection mode if nothing is left selected
             if (next.size === 0) setSelectionMode(false);
             return next;
         });
@@ -286,43 +318,58 @@ export default function RemindersView({
         setSelectedIds(new Set());
     };
 
+    const openDeleteConfirm = (reply: EmailReply) => {
+        setDeleteTarget(reply);
+        setDeleteConfirmOpen(true);
+    };
+
     const handleDelete = async () => {
-        if (!selectedReply) return;
+        if (!deleteTarget) return;
         setDeleting(true);
         try {
-            await axios.delete(`${baseurl}/delete/${selectedReply._id}`);
-            onDeleted?.(selectedReply._id);
+            await axios.delete(`${baseurl}/delete/${deleteTarget._id}`);
+            onDeleted?.(deleteTarget._id);
+            if (selectedReply?._id === deleteTarget._id) setSelectedReply(null);
             setDeleteConfirmOpen(false);
-            setSelectedReply(null);
+            setDeleteTarget(null);
         } catch (err) {
             console.error(err);
         } finally {
             setDeleting(false);
-            window.location.reload(); // Refresh the page after deletion
         }
     };
 
-
-
     const handleBulkDelete = async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
-    setBulkDeleting(true);
-    try {
-        const results = await Promise.allSettled(
-            ids.map((id) => axios.delete(`${baseurl}/delete/${id}`))
-        );
-        const succeededIds = ids.filter((_, i) => results[i].status === "fulfilled");
-        if (succeededIds.length > 0) {
-            onBulkDeleted?.(succeededIds);
+        const ids = Array.from(selectedIds);
+        if (ids.length === 0) return;
+        setBulkDeleting(true);
+        try {
+            const results = await Promise.allSettled(
+                ids.map((id) => axios.delete(`${baseurl}/delete/${id}`))
+            );
+            const succeededIds = ids.filter((_, i) => results[i].status === "fulfilled");
+            if (succeededIds.length > 0) {
+                onBulkDeleted?.(succeededIds);
+                if (selectedReply && succeededIds.includes(selectedReply._id)) {
+                    setSelectedReply(null);
+                }
+            }
+        } finally {
+            setBulkDeleting(false);
+            setBulkDeleteConfirmOpen(false);
+            exitSelectionMode();
         }
-    } finally {
-        setBulkDeleting(false);
-        setBulkDeleteConfirmOpen(false);
-        exitSelectionMode();
-        window.location.reload(); // Refresh the page after bulk deletion
-    }
-};
+    };
+
+    const openReply = (reply: EmailReply) => {
+        setSelectedReply(reply);
+        onReplyClick?.(reply);
+    };
+
+    const selectedColor = selectedReply
+        ? AVATAR_COLORS[hashString(selectedReply.customer_email) % AVATAR_COLORS.length]
+        : null;
+
     return (
         <>
             {/* ── Navbar ── */}
@@ -335,15 +382,11 @@ export default function RemindersView({
                         >
                             <X className="w-4 h-4" />
                         </button>
-                        <span className="text-sm font-semibold text-foreground">
-                            {selectedIds.size} selected
-                        </span>
+                        <span className="text-sm font-semibold text-foreground">{selectedIds.size} selected</span>
                         <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                                setSelectedIds(new Set(safeReminders.map((r) => r._id)));
-                            }}
+                            onClick={() => setSelectedIds(new Set(visibleReminders.map((r) => r._id)))}
                             className="h-8 text-xs gap-1.5 text-muted-foreground"
                         >
                             <CheckSquare className="w-3.5 h-3.5" />
@@ -394,194 +437,217 @@ export default function RemindersView({
             </header>
 
             {/* ── Page body ── */}
-            <div className="p-6 space-y-5 bg-background min-h-[calc(100vh-3.5rem)]">
-                <div className="flex items-start justify-between">
+            <div className="flex flex-col bg-background min-h-[calc(100vh-3.5rem)]">
+                <div className="px-6 pt-6 pb-4 flex items-start justify-between shrink-0">
                     <div>
-                        <h1 className="text-2xl font-bold text-foreground tracking-tight">
-                            Reminders & Notifications
-                        </h1>
+                        <h1 className="text-2xl font-bold text-foreground tracking-tight">Reminders & Notifications</h1>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                            {selectionMode
-                                ? "Tap cards to select more, or delete your selection."
-                                : "Customer replies that need your attention."}
+                            Customer replies that need your attention.
                         </p>
                     </div>
-
-                    {!selectionMode && (
-                        <Button
-                            size="sm"
-                            onClick={onSync}
-                            disabled={loading || !onSync}
-                            className="h-9 text-sm gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 disabled:opacity-70"
-                        >
-                            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-                            {loading ? "Syncing..." : "Sync"}
-                        </Button>
-                    )}
+                    <Button
+                        size="sm"
+                        onClick={onSync}
+                        disabled={loading || !onSync}
+                        className="h-9 text-sm gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 disabled:opacity-70"
+                    >
+                        <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                        {loading ? "Syncing..." : "Sync"}
+                    </Button>
                 </div>
 
-                {isDisconnected && <NotConnectedAlert />}
-
-                <div className="flex gap-4">
+                <div className="px-6 flex gap-4 shrink-0">
                     <Card className="flex-1 bg-card border border-border shadow-sm rounded-xl">
-                        <CardContent className="p-5 flex items-center justify-between">
+                        <CardContent className="p-4 flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground font-medium">Total Replies</p>
-                                <p className="text-3xl font-bold text-foreground tracking-tight mt-1">
+                                <p className="text-xs text-muted-foreground font-medium">Total Replies</p>
+                                <p className="text-2xl font-bold text-foreground tracking-tight mt-0.5">
                                     {loading ? "—" : safeReminders.length}
                                 </p>
                             </div>
-                            <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                                <Mail className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                            <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                                <Mail className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card className="flex-1 bg-card border border-border shadow-sm rounded-xl">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div>
+                                <p className="text-xs text-muted-foreground font-medium">Unread</p>
+                                <p className="text-2xl font-bold text-foreground tracking-tight mt-0.5">
+                                    {loading ? "—" : unreadCount}
+                                </p>
+                            </div>
+                            <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                                <MailOpen className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400" />
                             </div>
                         </CardContent>
                     </Card>
                 </div>
 
-                <div className="space-y-3">
-                    {loading && Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="flex gap-3 p-4 rounded-xl border border-border bg-card">
-                            <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                            <div className="flex-1 space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <Skeleton className="h-3.5 w-40" />
-                                    <Skeleton className="h-3 w-16" />
-                                </div>
-                                <Skeleton className="h-3 w-28" />
-                                <Skeleton className="h-3.5 w-full" />
-                            </div>
+                {isDisconnected && <NotConnectedAlert />}
+
+                {/* ── Inbox: list + reading pane ── */}
+                <div className="flex-1 mt-4 mx-6 mb-6 border border-border rounded-xl overflow-hidden bg-card min-h-[520px] flex">
+                    {/* List panel */}
+                    <div
+                        className={cn(
+                            "flex-col w-full lg:w-[380px] lg:border-r border-border shrink-0",
+                            selectedReply ? "hidden lg:flex" : "flex"
+                        )}
+                    >
+                        <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
+                            <Tabs value={filter} onValueChange={(v) => setFilter(v as "all" | "unread")}>
+                                <TabsList className="h-8">
+                                    <TabsTrigger value="all" className="text-xs px-3 h-6">
+                                        All
+                                    </TabsTrigger>
+                                    <TabsTrigger value="unread" className="text-xs px-3 h-6">
+                                        Unread{unreadCount > 0 ? ` (${unreadCount})` : ""}
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
                         </div>
-                    ))}
 
-                    {!loading && !isDisconnected && safeReminders.length === 0 && (
-                        <div className="flex flex-col items-center justify-center gap-2 py-20 text-muted-foreground bg-card border border-border rounded-xl">
-                            <Inbox className="h-10 w-10 opacity-20" />
-                            <p className="text-sm font-semibold text-foreground">No reminders yet</p>
-                            <p className="text-xs">Click Sync to check for new customer replies</p>
-                        </div>
-                    )}
-
-                    {!loading && safeReminders.map((reply) => (
-                        <ReminderCard
-                            key={reply._id}
-                            reply={reply}
-                            selectionMode={selectionMode}
-                            selected={selectedIds.has(reply._id)}
-                            onLongPress={() => enterSelectionMode(reply._id)}
-                            onToggleSelect={() => toggleSelected(reply._id)}
-                            onClick={() => {
-                                setSelectedReply(reply);
-                                onReplyClick?.(reply);
-                            }}
-                        />
-                    ))}
-                </div>
-            </div>
-
-            {/* ── Reply detail dialog ── */}
-            <Dialog
-                open={!!selectedReply}
-                onOpenChange={(open) => {
-                    if (!open) setSelectedReply(null);
-                }}
-            >
-                <DialogContent className="w-full max-w-lg p-0 overflow-hidden rounded-xl border border-border">
-                    {selectedReply && (() => {
-                        const color = AVATAR_COLORS[hashString(selectedReply.customer_email) % AVATAR_COLORS.length];
-                        return (
-                            <>
-                                <DialogHeader className="px-6 pt-6 pb-4 space-y-0">
-                                    <div className="flex items-start gap-3 w-full">
-                                        <div className={cn(
-                                            "h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
-                                            color.bg, color.text
-                                        )}>
-                                            {getInitials(selectedReply.customer_email)}
-                                        </div>
-
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <DialogTitle className="text-base font-semibold text-foreground break-words">
-                                                    {selectedReply.subject}
-                                                </DialogTitle>
-                                                {!selectedReply.is_read && (
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="text-[10px] font-semibold border-indigo-500/20 bg-indigo-500/10 text-indigo-600 shrink-0"
-                                                    >
-                                                        NEW
-                                                    </Badge>
-                                                )}
+                        <div className="flex-1 overflow-y-auto">
+                            {loading &&
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <div key={i} className="flex gap-3 px-3 py-3 border-b border-border">
+                                        <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                                        <div className="flex-1 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <Skeleton className="h-3 w-32" />
+                                                <Skeleton className="h-3 w-10" />
                                             </div>
-
-                                            <DialogDescription asChild>
-                                                <div className="flex items-center justify-between gap-2 mt-1">
-                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
-                                                        <a
-                                                            href={`mailto:${selectedReply.customer_email}`}
-                                                            className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate max-w-[160px]"
-                                                        >
-                                                            {selectedReply.customer_email}
-                                                        </a>
-                                                        <span className="shrink-0">•</span>
-                                                        <span className="flex items-center gap-1 shrink-0">
-                                                            <Clock className="w-3 h-3" />
-                                                            {timeAgo(selectedReply.received_at)}
-                                                        </span>
-                                                    </div>
-
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => setDeleteConfirmOpen(true)}
-                                                        className="h-7 w-7 rounded-lg text-rose-600 hover:text-rose-600 hover:bg-rose-500/10 shrink-0"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </Button>
-                                                </div>
-                                            </DialogDescription>
+                                            <Skeleton className="h-3 w-40" />
+                                            <Skeleton className="h-3 w-full" />
                                         </div>
                                     </div>
-                                </DialogHeader>
+                                ))}
 
-                                <Separator />
-
-                                <div className="px-6 py-4">
-                                    <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-                                        Message
+                            {!loading && !isDisconnected && visibleReminders.length === 0 && (
+                                <div className="flex flex-col items-center justify-center gap-2 py-20 text-muted-foreground">
+                                    <Inbox className="h-10 w-10 opacity-20" />
+                                    <p className="text-sm font-semibold text-foreground">
+                                        {filter === "unread" ? "No unread replies" : "No reminders yet"}
                                     </p>
-                                    <div className="rounded-xl border border-border bg-muted/40 p-4 max-h-64 overflow-y-auto">
-                                        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed break-words">
-                                            {selectedReply.message}
-                                        </p>
+                                    <p className="text-xs">Click Sync to check for new customer replies</p>
+                                </div>
+                            )}
+
+                            {!loading &&
+                                visibleReminders.map((reply) => (
+                                    <ReminderRow
+                                        key={reply._id}
+                                        reply={reply}
+                                        active={selectedReply?._id === reply._id}
+                                        selectionMode={selectionMode}
+                                        selected={selectedIds.has(reply._id)}
+                                        onLongPress={() => enterSelectionMode(reply._id)}
+                                        onToggleSelect={() => toggleSelected(reply._id)}
+                                        onQuickDelete={() => openDeleteConfirm(reply)}
+                                        onClick={() => openReply(reply)}
+                                    />
+                                ))}
+                        </div>
+                    </div>
+
+                    {/* Reading pane */}
+                    <div
+                        className={cn(
+                            "flex-col flex-1 min-w-0",
+                            selectedReply ? "flex" : "hidden lg:flex"
+                        )}
+                    >
+                        {!selectedReply && (
+                            <div className="flex-1 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                                <Mail className="h-10 w-10 opacity-20" />
+                                <p className="text-sm">Select a reminder to read</p>
+                            </div>
+                        )}
+
+                        {selectedReply && selectedColor && (
+                            <>
+                                <div className="flex items-start gap-3 px-6 py-5 border-b border-border shrink-0">
+                                    <button
+                                        onClick={() => setSelectedReply(null)}
+                                        className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 -ml-1"
+                                    >
+                                        <ArrowLeft className="w-4 h-4" />
+                                    </button>
+
+                                    <div
+                                        className={cn(
+                                            "h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
+                                            selectedColor.bg,
+                                            selectedColor.text
+                                        )}
+                                    >
+                                        {getInitials(selectedReply.customer_email)}
                                     </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <h2 className="text-base font-semibold text-foreground break-words">
+                                                {selectedReply.subject}
+                                            </h2>
+                                            {!selectedReply.is_read && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="text-[10px] font-semibold border-indigo-500/20 bg-indigo-500/10 text-indigo-600 shrink-0"
+                                                >
+                                                    NEW
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap mt-1">
+                                            <a
+                                                href={`mailto:${selectedReply.customer_email}`}
+                                                className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                                            >
+                                                {selectedReply.customer_email}
+                                            </a>
+                                            <span>•</span>
+                                            <span className="flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                {timeAgo(selectedReply.received_at)}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => openDeleteConfirm(selectedReply)}
+                                        className="h-8 w-8 rounded-lg text-rose-600 hover:text-rose-600 hover:bg-rose-500/10 shrink-0"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
                                 </div>
 
-                                <Separator />
+                                <div className="flex-1 overflow-y-auto px-6 py-5">
+                                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed break-words">
+                                        {selectedReply.message}
+                                    </p>
+                                </div>
 
-                                <div className="px-6 py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-9 text-sm rounded-lg border-border w-full sm:w-auto"
-                                        onClick={() => setSelectedReply(null)}
-                                    >
-                                        Close
-                                    </Button>
+                                <div className="px-6 py-4 border-t border-border flex justify-end gap-2 shrink-0">
                                     <a
-                                        href={`mailto:${selectedReply.customer_email}?subject=${encodeURIComponent(`Re: ${selectedReply.subject}`)}`}
-                                        className="flex items-center gap-1.5 w-full justify-center h-9 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 sm:w-auto"
+                                        href={`mailto:${selectedReply.customer_email}?subject=${encodeURIComponent(
+                                            `Re: ${selectedReply.subject}`
+                                        )}`}
+                                        className="flex items-center gap-1.5 h-9 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4"
                                     >
-                                        <Mail className="w-4 h-4" />
+                                        <Reply className="w-4 h-4" />
                                         Reply
                                     </a>
                                 </div>
                             </>
-                        );
-                    })()}
-                </DialogContent>
-            </Dialog>
+                        )}
+                    </div>
+                </div>
+            </div>
 
             {/* ── Single delete confirmation ── */}
             <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
@@ -590,17 +656,13 @@ export default function RemindersView({
                         <div className="w-11 h-11 rounded-full bg-rose-500/10 flex items-center justify-center mb-2">
                             <Trash2 className="w-5 h-5 text-rose-600" />
                         </div>
-                        <AlertDialogTitle className="text-base font-semibold">
-                            Delete this reminder?
-                        </AlertDialogTitle>
+                        <AlertDialogTitle className="text-base font-semibold">Delete this reminder?</AlertDialogTitle>
                         <AlertDialogDescription className="text-sm text-muted-foreground">
-                            {selectedReply && (
+                            {deleteTarget && (
                                 <>
                                     This will permanently remove the reply from{" "}
-                                    <span className="font-medium text-foreground">
-                                        {selectedReply.customer_email}
-                                    </span>{" "}
-                                    regarding <span className="font-medium text-foreground">"{selectedReply.subject}"</span>.
+                                    <span className="font-medium text-foreground">{deleteTarget.customer_email}</span>{" "}
+                                    regarding <span className="font-medium text-foreground">"{deleteTarget.subject}"</span>.
                                     This action cannot be undone.
                                 </>
                             )}
