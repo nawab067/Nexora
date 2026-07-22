@@ -105,14 +105,15 @@ export function LoginForm({ onSubmit, loading = false, error = '' }: LoginFormPr
         onSubmit?.(formData);
     };
 
-    
+
+
 
 const handleGoogleLogin = async () => {
   await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo:
-        "http://localhost:3000/auth/login-callback",
+        `${baseurl}/auth/login-callback`,
     },
   });
 };

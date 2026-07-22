@@ -150,6 +150,7 @@ function IconInput({
 // ─── Sign Up Page ─────────────────────────────────────────────────────────────
 export default function SignUpPage({ onSignUp }: { onSignUp: (data: SignUpData) => void }) {
     const [showPassword, setShowPassword] = useState(false);
+    const baseurl = process.env.NEXT_PUBLIC_BASE_URL
     const [form, setForm] = useState<SignUpData>({
         _id: "",
         name: "",
@@ -167,7 +168,7 @@ export default function SignUpPage({ onSignUp }: { onSignUp: (data: SignUpData) 
     await supabase.auth.signInWithOAuth({
   provider: "google",
   options: {
-    redirectTo: "http://localhost:3000/auth/signup-callback",
+    redirectTo: `${baseurl}/auth/signup-callback`,
   },
 });
 };
