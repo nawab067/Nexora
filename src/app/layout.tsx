@@ -7,11 +7,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Nexora",
   description: "Nexora Management System",
-  icons: {
-    icon: "/nexora.png",
-    shortcut: "/nexora.png",
-    apple: "/nexora.png",
-  },
 };
 
 const geistSans = Geist({
