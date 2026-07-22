@@ -62,7 +62,7 @@ const baseurl= process.env.NEXT_PUBLIC_BASE_URL;
 // ─── Sidebar-style settings nav (visual grouping, mirrors sticky-header pattern) ──
 const NAV_SECTIONS = [
     { id: "appearance", label: "Appearance", icon: Palette },
-    { id: "profile", label: "Profile", icon: User },
+    { id: "profile", label: "Switch account & Logout", icon: User },
     { id: "notifications", label: "Notifications", icon: BellIcon },
     { id: "security", label: "Account & users", icon: Shield },
 ] as const;
