@@ -31,7 +31,7 @@ export default function Auth() {
       );
 
       if (response.data.success) {
-        sessionStorage.setItem("token", response.data.token); // 🔥 ADD THIS
+        sessionStorage.setItem("token", response.data.token);
         router.push('/admin/dashboard');
       } else {
         setError(response.data.message);
@@ -44,20 +44,12 @@ export default function Auth() {
       setLoading(false);
     }
   };
-  const handleRegister = () => {
-    router.push('/auth/signup');
-  };
-
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-white">
-      <div className="w-full max-w-md">
-        <LoginForm
-          onSubmit={handleLogin}
-          loading={loading}
-          error={error}
-        />
-      </div>
-    </main>
+    <LoginForm
+      onSubmit={handleLogin}
+      loading={loading}
+      error={error}
+    />
   );
 }
