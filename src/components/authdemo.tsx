@@ -1,365 +1,138 @@
-'use client';
-import { useRouter } from 'next/navigation';
+"use client";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
-    Sparkles,
-    Users,
-    TrendingUp,
-    DollarSign,
-    BarChart2,
-    CheckCircle2,
-    ArrowRight,
+  Sparkles,
+  Users,
+  TrendingUp,
+  DollarSign,
+  BarChart2,
+  ArrowRight,
 } from "lucide-react";
 
 // ─── Stat Card — identical to CustomerInfoView StatCard ───────────────────────
 function StatCard({
-    icon: Icon,
-    label,
-    value,
-    sub,
-    subColor,
-    iconBg,
-    iconColor,
+  icon: Icon,
+  label,
+  value,
+  sub,
+  subColor,
+  iconBg,
+  iconColor,
 }: {
-    icon: React.ElementType;
-    label: string;
-    value: string;
-    sub: string;
-    subColor?: string;
-    iconBg?: string;
-    iconColor?: string;
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  sub: string;
+  subColor?: string;
+  iconBg?: string;
+  iconColor?: string;
 }) {
-    return (
+  return (
+    <div className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-3 flex items-start justify-between">
+        <p className="text-sm font-medium text-slate-500">{label}</p>
         <div
-            style={{
-                flex: 1,
-                minWidth: 0,
-                backgroundColor: "#ffffff",
-                borderRadius: "12px",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                padding: "20px",
-            }}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+          style={{ backgroundColor: iconBg ?? "#eff6ff" }}
         >
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "12px" }}>
-                <p style={{ fontSize: "14px", color: "#64748b", fontWeight: 500 }}>{label}</p>
-                <div
-                    style={{
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "8px",
-                        backgroundColor: iconBg ?? "#eff6ff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                    }}
-                >
-                    <Icon style={{ width: "16px", height: "16px", color: iconColor ?? "#2563eb" }} />
-                </div>
-            </div>
-            <p style={{ fontSize: "30px", fontWeight: 700, color: "#1e293b", letterSpacing: "-0.02em", marginBottom: "4px" }}>
-                {value}
-            </p>
-            <p style={{ fontSize: "12px", fontWeight: 500, color: subColor ?? "#059669" }}>{sub}</p>
+          <Icon className="h-4 w-4" style={{ color: iconColor ?? "#2563eb" }} />
         </div>
-    );
-}
-
-// ─── Feature bullet ───────────────────────────────────────────────────────────
-function Feature({ text }: { text: string }) {
-    return (
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <CheckCircle2 style={{ width: "16px", height: "16px", color: "#10b981", flexShrink: 0 }} />
-            <span style={{ fontSize: "14px", color: "#475569" }}>{text}</span>
-        </div>
-    );
+      </div>
+      <p className="mb-1 text-2xl font-bold tracking-tight text-slate-800 sm:text-[30px]">
+        {value}
+      </p>
+      <p
+        className="text-xs font-medium"
+        style={{ color: subColor ?? "#059669" }}
+      >
+        {sub}
+      </p>
+    </div>
+  );
 }
 
 // ─── Demo Page ────────────────────────────────────────────────────────────────
 export default function DemoPage() {
-    const router = useRouter();
-    return (
-        
-        <div
-            style={{
-                width: "100vw",
-                minHeight: "100vh",
-                marginLeft: "calc(-50vw + 50%)",   // escape centered containers
-                backgroundColor: "#f8fafc",
-                display: "flex",
-                flexDirection: "column",
-                fontFamily: "inherit",
-                overflowX: "hidden",
-            }}
-        >
-            {/* ── Navbar ── */}
-            <header
-                style={{
-                    width: "100%",
-                    height: "56px",
-                    backgroundColor: "#ffffff",
-                    borderBottom: "1px solid #e2e8f0",
-                    display: "flex",
-                    alignItems: "center",
-                    paddingLeft: "32px",
-                    paddingRight: "32px",
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 50,
-                    flexShrink: 0,
-                }}
-            >
-                {/* Logo */}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div
-                        style={{
-                            width: "32px",
-                            height: "32px",
-                            borderRadius: "8px",
-                            backgroundColor: "#2563eb",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                        }}
-                    >
-                        <Sparkles style={{ width: "16px", height: "16px", color: "#fff" }} />
-                    </div>
-                    <span style={{ fontSize: "15px", fontWeight: 700, color: "#1e293b", letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>
-                        Nexora CRM
-                    </span>
-                </div>
-
-                {/* Nav links */}
-                <div style={{ display: "flex", alignItems: "center", gap: "28px", marginLeft: "40px" }}>
-                    {["Features", "Pricing", "Customers", "Docs"].map((item) => (
-                        <button
-                            key={item}
-                            style={{ fontSize: "14px", color: "#64748b", fontWeight: 500, background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                        >
-                            {item}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Auth buttons — right side */}
-                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <Button
-                        onClick={() => router.push("/auth/login")}
-                        variant="outline"
-                        size="sm"
-                        style={{ height: "36px", padding: "0 16px", fontSize: "14px", fontWeight: 600, borderColor: "#e2e8f0", color: "#475569", borderRadius: "8px" }}
-                    >
-                        Log in
-                    </Button>
-                    <Button
-                        onClick={() => router.push("/auth/signup")}
-                        size="sm"
-                        style={{ height: "36px", padding: "0 16px", fontSize: "14px", fontWeight: 600, backgroundColor: "#2563eb", color: "#fff", borderRadius: "8px" }}
-                    >
-                        Sign up free
-                    </Button>
-                </div>
-            </header>
-
-            {/* ── Main ── */}
-            <main style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column" }}>
-
-                {/* Hero */}
-                <section
-                    style={{
-                        width: "100%",
-                        padding: "72px 32px 56px",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        textAlign: "center",
-                        backgroundColor: "#ffffff",
-                        borderBottom: "1px solid #e2e8f0",
-                    }}
-                >
-                    {/* Badge */}
-                    <div
-                        style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            backgroundColor: "#eff6ff",
-                            border: "1px solid #bfdbfe",
-                            color: "#2563eb",
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            padding: "6px 12px",
-                            borderRadius: "999px",
-                            marginBottom: "24px",
-                        }}
-                    >
-                        <Sparkles style={{ width: "12px", height: "12px" }} />
-                        AI-powered lead management
-                    </div>
-
-                    {/* Headline */}
-                    <h1
-                        style={{
-                            fontSize: "clamp(36px, 5vw, 64px)",
-                            fontWeight: 800,
-                            color: "#0f172a",
-                            letterSpacing: "-0.03em",
-                            lineHeight: 1.1,
-                            marginBottom: "20px",
-                            maxWidth: "800px",
-                        }}
-                    >
-                        Track, nurture, and{" "}
-                        <span style={{ color: "#2563eb" }}>close deals</span>{" "}
-                        faster.
-                    </h1>
-
-                    <p
-                        style={{
-                            fontSize: "17px",
-                            color: "#64748b",
-                            lineHeight: 1.7,
-                            marginBottom: "36px",
-                            maxWidth: "500px",
-                        }}
-                    >
-                        One clean workspace for your entire pipeline — from first touch to signed contract.
-                    </p>
-
-                    {/* CTA buttons */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-                        <Button
-                            onClick={() => router.push("/auth/login")}
-                            variant="outline"
-                            style={{
-                                height: "48px",
-                                padding: "0 32px",
-                                fontSize: "15px",
-                                fontWeight: 600,
-                                borderColor: "#cbd5e1",
-                                color: "#334155",
-                                borderRadius: "10px",
-                            }}
-                        >
-                            Log in
-                        </Button>
-                        <Button
-                            onClick={() => router.push("/auth/signup")}
-                            style={{
-                                height: "48px",
-                                padding: "0 32px",
-                                fontSize: "15px",
-                                fontWeight: 600,
-                                backgroundColor: "#2563eb",
-                                color: "#ffffff",
-                                borderRadius: "10px",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                            }}
-                        >
-                            Sign up free
-                            <ArrowRight style={{ width: "16px", height: "16px" }} />
-                        </Button>
-                    </div>
-
-                    <p style={{ fontSize: "12px", color: "#94a3b8" }}>
-                        No credit card required · Free 14-day trial
-                    </p>
-                </section>
-
-                {/* ── Stat cards — full bleed ── */}
-                <section style={{ width: "100%", padding: "32px 32px" }}>
-                    <div style={{ display: "flex", gap: "16px", width: "100%" }}>
-                        <StatCard
-                            icon={Users}
-                            label="Total Active Leads"
-                            value="12,400+"
-                            sub="+12% from last month"
-                            subColor="#059669"
-                            iconBg="#eff6ff"
-                            iconColor="#2563eb"
-                        />
-                        <StatCard
-                            icon={DollarSign}
-                            label="Pipeline Value"
-                            value="$4.2M"
-                            sub="Goal: $5M this quarter"
-                            subColor="#64748b"
-                            iconBg="#f0fdf4"
-                            iconColor="#059669"
-                        />
-                        <StatCard
-                            icon={TrendingUp}
-                            label="Conversion Rate"
-                            value="24.8%"
-                            sub="Nurture time: 14 days avg"
-                            subColor="#64748b"
-                            iconBg="#f5f3ff"
-                            iconColor="#7c3aed"
-                        />
-                        <StatCard
-                            icon={BarChart2}
-                            label="Win Rate"
-                            value="62%"
-                            sub="+5% vs Q3 baseline"
-                            subColor="#059669"
-                            iconBg="#2563eb"
-                            iconColor="#ffffff"
-                        />
-                    </div>
-                </section>
-
-                <Separator style={{ width: "calc(100% - 64px)", margin: "0 32px" }} />
-
-                {/* ── Features strip ── */}
-                <section
-                    style={{
-                        width: "100%",
-                        padding: "28px 32px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "48px",
-                        flexWrap: "wrap",
-                        backgroundColor: "#ffffff",
-                    }}
-                >
-                    <Feature text="AI-powered email outreach per lead" />
-                    <Feature text="Real-time pipeline & conversion analytics" />
-                    <Feature text="Team collaboration with role-based access" />
-                    <Feature text="CSV export & third-party integrations" />
-                </section>
-            </main>
-
-            {/* ── Footer ── */}
-            <footer
-                style={{
-                    width: "100%",
-                    height: "48px",
-                    backgroundColor: "#ffffff",
-                    borderTop: "1px solid #e2e8f0",
-                    display: "flex",
-                    alignItems: "center",
-                    paddingLeft: "32px",
-                    paddingRight: "32px",
-                    flexShrink: 0,
-                }}
-            >
-                <p style={{ fontSize: "12px", color: "#94a3b8" }}>
-                    © {new Date().getFullYear()} LeadFlow CRM. All rights reserved.
-                </p>
-                <div style={{ marginLeft: "auto", display: "flex", gap: "24px" }}>
-                    {["Privacy", "Terms", "Support"].map((l) => (
-                        <button key={l} style={{ fontSize: "12px", color: "#94a3b8", background: "none", border: "none", cursor: "pointer" }}>
-                            {l}
-                        </button>
-                    ))}
-                </div>
-            </footer>
+  const router = useRouter();
+  return (
+    <div className="flex min-h-screen w-full flex-col bg-slate-50">
+      {/* ── Navbar ── */}
+      <header className="sticky top-0 z-50 flex h-14 w-full shrink-0 items-center border-b border-slate-200 bg-white px-4 sm:px-8">
+        {/* Logo */}
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600">
+            <Sparkles className="h-4 w-4 text-white" />
+          </div>
+          <span className="whitespace-nowrap text-sm font-bold tracking-tight text-slate-800 sm:text-[15px]">
+            Nexora CRM
+          </span>
         </div>
-    );
+
+        {/* Auth buttons — right side */}
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            onClick={() => router.push("/auth/login")}
+            variant="outline"
+            size="sm"
+            className="h-9 rounded-lg border-slate-200 px-3 text-sm font-semibold text-slate-600 sm:px-4"
+          >
+            Log in
+          </Button>
+          <Button
+            onClick={() => router.push("/auth/signup")}
+            size="sm"
+            className="h-9 rounded-lg bg-indigo-600 px-3 text-sm font-semibold text-white hover:bg-indigo-700 sm:px-4"
+          >
+            Sign up free
+          </Button>
+        </div>
+      </header>
+
+      {/* ── Main ── */}
+      <main className="flex w-full flex-1 flex-col">
+        {/* Hero */}
+        <section className="flex w-full flex-col items-center border-b border-slate-200 bg-white px-4 py-14 text-center sm:px-8 sm:py-18 lg:py-20">
+          {/* Badge */}
+          <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600">
+            <Sparkles className="h-3 w-3" />
+            AI-powered lead management
+          </div>
+
+          {/* Headline */}
+          <h1 className="mb-5 max-w-[800px] text-[clamp(32px,7vw,64px)] font-extrabold leading-[1.1] tracking-tight text-slate-900">
+            Track, nurture, and{" "}
+            <span className="text-indigo-600">close deals</span> faster.
+          </h1>
+
+          <p className="mb-9 max-w-[500px] text-base leading-relaxed text-slate-500 sm:text-[17px]">
+            One clean workspace for your entire pipeline — from first touch to
+            signed contract.
+          </p>
+
+          {/* CTA buttons */}
+          <div className="mb-4 flex w-full max-w-[360px] flex-col items-center gap-3 sm:w-auto sm:max-w-none sm:flex-row">
+            <Button
+              onClick={() => router.push("/auth/login")}
+              variant="outline"
+              className="h-12 w-full rounded-xl border-slate-300 px-8 text-[15px] font-semibold text-slate-700 sm:w-auto"
+            >
+              Log in
+            </Button>
+            <Button
+              onClick={() => router.push("/auth/signup")}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-8 text-[15px] font-semibold text-white hover:bg-indigo-700 sm:w-auto"
+            >
+              Sign up free
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <p className="text-xs text-slate-400">
+            No credit card required · Free 14-day trial
+          </p>
+        </section>
+      </main>
+    </div>
+  );
 }
