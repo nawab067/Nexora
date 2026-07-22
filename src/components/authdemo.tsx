@@ -81,19 +81,7 @@ function Feature({ text }: { text: string }) {
 export default function DemoPage() {
     const router = useRouter();
     return (
-        /*
-         * IMPORTANT — add this to your Next.js root layout (app/layout.tsx):
-         *
-         *   <body className="!p-0 !m-0 !max-w-none">
-         *     {children}
-         *   </body>
-         *
-         * And make sure your globals.css does NOT have:
-         *   body { max-width: ...; margin: auto; }
-         *
-         * The outermost div uses 100vw + overflow-x:hidden to escape any
-         * parent container that Next.js / shadcn scaffolding may inject.
-         */
+        
         <div
             style={{
                 width: "100vw",
@@ -140,7 +128,7 @@ export default function DemoPage() {
                         <Sparkles style={{ width: "16px", height: "16px", color: "#fff" }} />
                     </div>
                     <span style={{ fontSize: "15px", fontWeight: 700, color: "#1e293b", letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>
-                        LeadFlow CRM
+                        Nexora CRM
                     </span>
                 </div>
 
