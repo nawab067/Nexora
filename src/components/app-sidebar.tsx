@@ -142,24 +142,7 @@ export function AppSidebar() {
     getProfession();
   }, [userid]);
 
-  const handleLogout = async () => {
-    try {
-      await axios.post(
-        `${baseurl}/logout`,
-        {},
-        {
-          withCredentials: true,
-        },
-      );
-
-      sessionStorage.removeItem("token");
-      sessionStorage.removeItem("user");
-
-      router.push("/auth");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
+  
 
   // Close the mobile drawer after a nav item is tapped, so the sheet
   // doesn't stay open over the page you just navigated to.
@@ -278,20 +261,7 @@ export function AppSidebar() {
         </div>
 
         {/* Logout button */}
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={handleLogout}
-              tooltip="Logout"
-              className="h-9 rounded-lg px-3 text-sm font-medium text-rose-400 transition-colors duration-150 hover:bg-rose-500/10 hover:text-rose-300"
-            >
-              <LogOut className="size-4 shrink-0" />
-              <span className="group-data-[collapsible=icon]:hidden">
-                Logout
-              </span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        
       </SidebarFooter>
     </Sidebar>
   );
