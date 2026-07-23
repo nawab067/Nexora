@@ -150,7 +150,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border tracking-wide",
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border tracking-wide whitespace-nowrap",
         style,
       )}
     >
@@ -179,14 +179,14 @@ function OverviewCard({
   const ArrowIcon = type === "positive" ? ArrowUpRight : ArrowDownRight;
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-            <Icon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start justify-between mb-3 sm:mb-4">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <span
             className={cn(
-              "flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full",
+              "flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap",
               type === "positive"
                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                 : "bg-rose-500/10 text-rose-500 dark:text-rose-400",
@@ -196,8 +196,8 @@ function OverviewCard({
             {change}
           </span>
         </div>
-        <p className="text-sm text-muted-foreground mb-1">{label}</p>
-        <p className="text-2xl font-bold text-foreground tracking-tight">
+        <p className="text-xs sm:text-sm text-muted-foreground mb-1 truncate">{label}</p>
+        <p className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
           {value}
         </p>
       </CardContent>
@@ -247,9 +247,9 @@ function LeadAnalyticsChart({
 
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-5 pt-5">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold text-foreground">
+      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
+        <div className="flex flex-wrap items-center justify-between gap-1">
+          <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
             Lead Analytics
           </CardTitle>
           <span className="text-xs text-muted-foreground font-medium">
@@ -257,7 +257,7 @@ function LeadAnalyticsChart({
           </span>
         </div>
       </CardHeader>
-      <CardContent className="px-5 pb-5">
+      <CardContent className="px-2 sm:px-5 pb-4 sm:pb-5">
         <ChartContainer config={leadChartConfig} className="h-40 w-full">
           <AreaChart
             data={chartData}
@@ -283,7 +283,7 @@ function LeadAnalyticsChart({
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              interval={0}
+              interval="preserveStartEnd"
               tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
             />
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
@@ -319,15 +319,15 @@ const stageColors: Record<string, string> = {
 function PipelineFunnel({ data }: { data: Analytics[] }) {
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-5 pt-5">
-        <CardTitle className="text-base font-semibold text-foreground">
+      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
+        <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
           Pipeline
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-5 pb-5 space-y-3">
+      <CardContent className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-3">
         {data.map((stage) => (
-          <div key={stage.label} className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground font-medium w-20 shrink-0">
+          <div key={stage.label} className="flex items-center gap-2 sm:gap-3">
+            <span className="text-xs text-muted-foreground font-medium w-16 sm:w-20 shrink-0 truncate">
               {stage.label}
             </span>
             <div className="flex-1 h-7 bg-muted rounded-md overflow-hidden">
@@ -363,13 +363,13 @@ const emailChartConfig = {
 function EmailAnalyticsChart({ data }: { data: EmailAnalytics[] }) {
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-5 pt-5">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold text-foreground">
+      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
             Email Analytics
           </CardTitle>
 
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
               Sent
@@ -386,7 +386,7 @@ function EmailAnalyticsChart({ data }: { data: EmailAnalytics[] }) {
         </div>
       </CardHeader>
 
-      <CardContent className="px-5 pb-5">
+      <CardContent className="px-2 sm:px-5 pb-4 sm:pb-5">
         <ChartContainer config={emailChartConfig} className="h-44 w-full">
           <BarChart
             data={data}
@@ -463,24 +463,24 @@ function PieChartCard({
 
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-5 pt-5">
+      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-          <CardTitle className="text-base font-semibold text-foreground">
+          <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
             {title}
           </CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="px-5 pb-5 flex items-center gap-5">
+      <CardContent className="px-4 sm:px-5 pb-4 sm:pb-5 flex flex-col xs:flex-row sm:flex-row items-center gap-4 sm:gap-5">
         <div
-          className="w-24 h-24 rounded-full shrink-0"
+          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full shrink-0"
           style={{ background: `conic-gradient(${gradientParts.join(", ")})` }}
         >
           <div className="w-full h-full flex items-center justify-center">
-            <div className="w-14 h-14 rounded-full bg-card" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-card" />
           </div>
         </div>
-        <div className="space-y-2 flex-1 min-w-0">
+        <div className="space-y-2 flex-1 min-w-0 w-full">
           {data.map((d) => (
             <div key={d.label} className="flex items-center gap-2">
               <span
@@ -509,25 +509,24 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
       if (aReplies > 0 && bReplies === 0) return -1;
       if (aReplies === 0 && bReplies > 0) return 1;
 
-     
+
       return bReplies - aReplies;
     });
   }, [leads]);
-  console.log("Sorted leads:",sortedLeads);
 
   return (
     <Card className="border-border/60 shadow-sm rounded-xl h-full overflow-hidden">
-      <CardHeader className="pb-4 px-6 pt-5 border-b border-border/60 bg-muted/20">
+      <CardHeader className="pb-4 px-4 sm:px-6 pt-5 border-b border-border/60 bg-muted/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
               <Users className="w-4 h-4 text-indigo-600" />
             </div>
-            <CardTitle className="text-base font-semibold text-foreground">
+            <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
               Lead Status
             </CardTitle>
           </div>
-          <Badge variant="secondary" className="font-medium text-xs">
+          <Badge variant="secondary" className="font-medium text-xs shrink-0">
             {leads.length} {leads.length === 1 ? "lead" : "leads"}
           </Badge>
         </div>
@@ -562,63 +561,75 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
               return (
                 <div
                   key={lead.customerid}
-                  className="flex items-center gap-4 px-6 py-3.5 hover:bg-muted/30 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-6 py-3.5 hover:bg-muted/30 transition-colors"
                 >
-                  <div className="relative shrink-0">
-                    <Avatar className="w-9 h-9">
-                      <AvatarFallback
+                  {/* Row 1 on mobile / left block on desktop: avatar, name, status */}
+                  <div className="flex items-center gap-3 min-w-0 sm:flex-1">
+                    <div className="relative shrink-0">
+                      <Avatar className="w-9 h-9">
+                        <AvatarFallback
+                          className={cn(
+                            "text-xs font-semibold",
+                            hasReplies
+                              ? "bg-indigo-600 text-white"
+                              : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      {hasReplies && (
+                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground leading-tight truncate">
+                        {lead.customer_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {lead.name}
+                      </p>
+                    </div>
+
+                    {/* Status badge shows here on mobile only */}
+                    <div className="shrink-0 sm:hidden">
+                      <StatusBadge status={lead.status} />
+                    </div>
+                  </div>
+
+                  {/* Row 2 on mobile / right block on desktop: replies, score, status */}
+                  <div className="flex items-center justify-between gap-3 pl-12 sm:pl-0 sm:justify-end sm:gap-6">
+                    <div className="flex items-center gap-1.5 sm:w-16 sm:justify-center shrink-0">
+                      <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span
                         className={cn(
-                          "text-xs font-semibold",
+                          "text-sm font-semibold",
                           hasReplies
-                            ? "bg-indigo-600 text-white"
-                            : "bg-muted text-muted-foreground",
+                            ? "text-foreground"
+                            : "text-muted-foreground",
                         )}
                       >
-                        {initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    {hasReplies && (
-                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-foreground leading-tight truncate">
-                      {lead.customer_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                      {lead.name}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 w-16 shrink-0 justify-center">
-                    <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span
-                      className={cn(
-                        "text-sm font-semibold",
-                        hasReplies
-                          ? "text-foreground"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {lead.replies ?? 0}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 w-24 shrink-0">
-                    <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-amber-500"
-                        style={{ width: `${Math.min(score, 100)}%` }}
-                      />
+                        {lead.replies ?? 0}
+                      </span>
                     </div>
-                    <span className="text-xs font-semibold text-foreground w-7 text-right">
-                      {score}
-                    </span>
-                  </div>
 
-                  <div className="shrink-0 w-28 flex justify-end">
-                    <StatusBadge status={lead.status} />
+                    <div className="flex items-center gap-2 flex-1 sm:flex-none sm:w-24">
+                      <div className="h-1.5 flex-1 sm:w-16 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-amber-500"
+                          style={{ width: `${Math.min(score, 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-foreground w-7 text-right shrink-0">
+                        {score}
+                      </span>
+                    </div>
+
+                    {/* Status badge shows here on desktop only */}
+                    <div className="hidden sm:flex shrink-0 w-28 justify-end">
+                      <StatusBadge status={lead.status} />
+                    </div>
                   </div>
                 </div>
               );
@@ -635,13 +646,13 @@ function AIInsightsCard({ aiInsights }: { aiInsights: string }) {
 
   return (
     <Card className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-900 dark:to-black border-0 shadow-lg rounded-xl text-white h-full">
-      <CardContent className="p-5 flex flex-col h-full">
-        <div className="flex items-center justify-between">
+      <CardContent className="p-4 sm:p-5 flex flex-col h-full">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
               <Brain className="w-4 h-4 text-indigo-400" />
             </div>
-            <CardTitle className="text-base font-semibold text-white">
+            <CardTitle className="text-sm sm:text-base font-semibold text-white">
               AI Insights
             </CardTitle>
           </div>
@@ -689,18 +700,18 @@ function AIRecommendationsCard({
 }) {
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-5 pt-5">
+      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
             <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <CardTitle className="text-base font-semibold">
+          <CardTitle className="text-sm sm:text-base font-semibold">
             AI Recommendations
           </CardTitle>
         </div>
       </CardHeader>
 
-      <CardContent className="px-5 pb-5 space-y-1">
+      <CardContent className="px-3 sm:px-5 pb-4 sm:pb-5 space-y-1">
         {recommendations.map((recommendation, index) => (
           <div key={index}>
             <div className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg transition-colors hover:bg-muted/60">
@@ -729,20 +740,20 @@ function LeadPredictionCard({ prediction }: { prediction: AIPredictionType }) {
 
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-5 pt-5">
+      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
             <Target className="w-4 h-4 text-emerald-600" />
           </div>
-          <CardTitle className="text-base font-semibold">
+          <CardTitle className="text-sm sm:text-base font-semibold">
             Lead Prediction
           </CardTitle>
         </div>
       </CardHeader>
 
-      <CardContent className="px-5 pb-5">
-        <div className="flex items-baseline gap-2">
-          <p className="text-3xl font-bold tracking-tight">
+      <CardContent className="px-4 sm:px-5 pb-4 sm:pb-5">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <p className="text-2xl sm:text-3xl font-bold tracking-tight">
             {prediction.predicted_leads}
           </p>
           <Badge
@@ -854,8 +865,6 @@ export default function ReportsPage({
       Neutral: "#f59e0b",
       Negative: "#f43f5e",
     };
-
-    console.log(overview);
 
     return AIReply.map((item) => ({
       ...item,
@@ -973,33 +982,36 @@ export default function ReportsPage({
 
     saveAs(file, "CRM_Report.xlsx");
   };
-  console.log("AIReply:", AIReply);
-  console.log("replySentiment:", replySentiment);
-  console.log("leadanalytics:", leadanalytics);
+
   return (
     <>
       {/* ── Navbar ── */}
-      <header className="sticky top-0 z-10 h-14 bg-background border-b border-border flex items-center px-4 gap-3 shrink-0">
-        <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-        <Separator orientation="vertical" className="h-5" />
-        <div className="flex items-center gap-2 flex-1 max-w-sm">
-           <Button
-    variant="outline"
-    size="sm"
-    onClick={onRefresh}
-    disabled={refreshing}
-    className="h-8 text-xs gap-1.5 border-border text-muted-foreground hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 disabled:opacity-70 transition-colors"
-  >
-    <RefreshCw
-      className={cn(
-        "w-3.5 h-3.5 transition-transform duration-500",
-        refreshing && "animate-spin",
-      )}
-    />
-    {refreshing ? "Refreshing..." : "Refresh"}
-  </Button>
+      <header className="sticky top-0 z-10 min-h-14 bg-background border-b border-border flex flex-wrap items-center px-2 sm:px-4 py-2 sm:py-0 gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+          <Separator orientation="vertical" className="h-5 hidden sm:block" />
+        </div>
 
-  <Separator orientation="vertical" className="h-5" />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRefresh}
+          disabled={refreshing}
+          className="h-8 text-xs gap-1.5 border-border text-muted-foreground hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 disabled:opacity-70 transition-colors shrink-0"
+        >
+          <RefreshCw
+            className={cn(
+              "w-3.5 h-3.5 transition-transform duration-500",
+              refreshing && "animate-spin",
+            )}
+          />
+          <span className="hidden xs:inline sm:inline">
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </span>
+        </Button>
+
+        <div className="hidden md:flex items-center gap-2 flex-1 min-w-[120px] max-w-sm">
+          <Separator orientation="vertical" className="h-5" />
           <Search className="w-4 h-4 text-muted-foreground shrink-0" />
           <input
             type="text"
@@ -1007,17 +1019,18 @@ export default function ReportsPage({
             className="w-full text-sm text-foreground placeholder:text-muted-foreground bg-transparent outline-none"
           />
         </div>
-        <div className="flex items-center gap-1 ml-auto">
-          <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+
+        <div className="flex items-center gap-1 ml-auto shrink-0">
+          <button className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
             <Bell className="w-4 h-4" />
           </button>
-          <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+          <button className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
             <HelpCircle className="w-4 h-4" />
           </button>
-          <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+          <button className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
             <Settings className="w-4 h-4" />
           </button>
-          <Separator orientation="vertical" className="h-5 mx-2" />
+          <Separator orientation="vertical" className="h-5 mx-2 hidden sm:block" />
           <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
             AR
           </div>
@@ -1027,23 +1040,23 @@ export default function ReportsPage({
       {/* ── Page content ── */}
       <div
         ref={reportRef}
-        className="p-6 space-y-5 bg-background min-h-[calc(100vh-3.5rem)]"
+        className="p-3 sm:p-6 space-y-4 sm:space-y-5 bg-background min-h-[calc(100vh-3.5rem)]"
       >
         {/* Heading */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Reports</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <h1 className="text-lg sm:text-xl font-bold text-foreground">Reports</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               Understand your sales performance with AI insights.
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               id="report"
               onClick={exportPDF}
-              className="h-8 text-xs gap-1.5 border-border text-muted-foreground"
+              className="h-8 text-xs gap-1.5 border-border text-muted-foreground flex-1 sm:flex-none"
             >
               <FileText className="w-3.5 h-3.5" />
               Export PDF
@@ -1051,7 +1064,7 @@ export default function ReportsPage({
             <Button
               size="sm"
               onClick={exportExcel}
-              className="h-8 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
+              className="h-8 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white flex-1 sm:flex-none"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               Export Excel
@@ -1059,13 +1072,13 @@ export default function ReportsPage({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {overview.map((o) => (
             <OverviewCard key={o.label} {...o} />
           ))}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">
           <div className="xl:col-span-2">
             <LeadAnalyticsChart data={monthlyleads} />
           </div>
@@ -1074,7 +1087,7 @@ export default function ReportsPage({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">
           <div className="xl:col-span-2">
             <EmailAnalyticsChart data={emailanalytics} />
           </div>
@@ -1087,7 +1100,7 @@ export default function ReportsPage({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">
           <div>
             <PieChartCard
               title="Lead Source"
@@ -1100,9 +1113,9 @@ export default function ReportsPage({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">
           <AIInsightsCard aiInsights={aiInsights} />
-          <AIRecommendationsCard recommendations={aiRecommendations} />{" "}
+          <AIRecommendationsCard recommendations={aiRecommendations} />
           <LeadPredictionCard prediction={aiprediction} />
         </div>
       </div>
