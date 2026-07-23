@@ -339,8 +339,8 @@ function AIEmailDialog({
 }) {
     return (
         <Dialog open={aiEmail.open} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-2xl w-full p-0 overflow-hidden rounded-2xl gap-0">
-                <DialogHeader className="px-6 pt-6 pb-4 border-b border-border bg-gradient-to-r from-indigo-500/10 to-transparent">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl w-full p-0 overflow-hidden rounded-2xl gap-0 max-h-[90vh] flex flex-col">
+                <DialogHeader className="px-4 sm:px-6 pt-6 pb-4 border-b border-border bg-gradient-to-r from-indigo-500/10 to-transparent">
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-indigo-500/15 flex items-center justify-center shrink-0">
                             <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
@@ -359,7 +359,7 @@ function AIEmailDialog({
                     </div>
                 </DialogHeader>
 
-                <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+                <div className="px-4 sm:px-6 py-5 space-y-4 flex-1 overflow-y-auto">
                     {aiEmail.loading && (
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 font-medium">
@@ -460,7 +460,7 @@ function AIEmailDialog({
                 </div>
 
                 {!aiEmail.loading && (
-                    <DialogFooter className="px-6 py-4 border-t border-border bg-muted/40 flex-row items-center justify-between sm:justify-between gap-3">
+                    <DialogFooter className="px-4 sm:px-6 py-4 border-t border-border bg-muted/40 flex-row items-center justify-between sm:justify-between gap-3">
                         <Button
                             variant="ghost"
                             size="sm"
@@ -632,10 +632,10 @@ export default function CustomerInfoView({
             />
 
             {/* ── Navbar ── */}
-            <header className="sticky top-0 z-10 h-14 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border flex items-center px-4 gap-3 shrink-0">
+            <header className="sticky top-0 z-10 h-14 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0">
                 <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-                <Separator orientation="vertical" className="h-5" />
-                <div className="flex items-center gap-2 flex-1 max-w-sm">
+                <Separator orientation="vertical" className="h-5 hidden sm:block" />
+                <div className="hidden sm:flex items-center gap-2 flex-1 max-w-sm">
                     <Search className="w-4 h-4 text-muted-foreground shrink-0" />
                     <input
                         type="text"
@@ -647,13 +647,13 @@ export default function CustomerInfoView({
                     <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground">
                         <Bell className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground">
+                    <Button variant="ghost" size="icon" className="hidden sm:inline-flex w-8 h-8 text-muted-foreground">
                         <HelpCircle className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground">
+                    <Button variant="ghost" size="icon" className="hidden sm:inline-flex w-8 h-8 text-muted-foreground">
                         <Settings className="w-4 h-4" />
                     </Button>
-                    <Separator orientation="vertical" className="h-5 mx-2" />
+                    <Separator orientation="vertical" className="h-5 mx-1 sm:mx-2" />
                     <Avatar className="w-8 h-8">
                         <AvatarFallback className="bg-indigo-600 text-white text-xs font-bold">
                             AR
@@ -663,11 +663,11 @@ export default function CustomerInfoView({
             </header>
 
             {/* ── Page body ── */}
-            <div className="p-6 space-y-5 bg-background min-h-[calc(100vh-3.5rem)]">
+            <div className="p-3 sm:p-6 space-y-4 sm:space-y-5 bg-background min-h-[calc(100vh-3.5rem)]">
                 {/* Page heading */}
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div>
-                        <h1 className="text-2xl font-bold text-foreground tracking-tight">
+                        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
                             Leads Management
                         </h1>
                         <p className="text-sm text-muted-foreground mt-0.5">
@@ -679,15 +679,16 @@ export default function CustomerInfoView({
                             variant="outline"
                             size="sm"
                             onClick={exportCSV}
-                            className="h-9 text-sm gap-1.5 rounded-lg"
+                            className="h-9 flex-1 sm:flex-none text-sm gap-1.5 rounded-lg"
                         >
                             <Download className="w-4 h-4" />
-                            Export CSV
+                            <span className="hidden xs:inline sm:inline">Export CSV</span>
+                            <span className="xs:hidden sm:hidden">Export</span>
                         </Button>
                         <Button
                             size="sm"
                             onClick={onAddCustomer}
-                            className="h-9 text-sm gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4"
+                            className="h-9 flex-1 sm:flex-none text-sm gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4"
                         >
                             <Plus className="w-4 h-4" />
                             Add New Lead
@@ -697,7 +698,7 @@ export default function CustomerInfoView({
   
   
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
                     <StatCard
                         icon={Users}
                         label="Total Active Leads"
@@ -736,15 +737,15 @@ export default function CustomerInfoView({
 
                 {/* Toolbar */}
                 <Card className="border-border/70 shadow-sm">
-                    <CardContent className="p-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className="relative">
+                    <CardContent className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="relative flex-1 min-w-[10rem] sm:flex-none">
                                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                                 <Input
                                     placeholder="Search leads…"
                                     value={search}
                                     onChange={(e) => onSearchChange(e.target.value)}
-                                    className="pl-8 h-9 w-56 text-sm rounded-lg bg-muted border-border focus-visible:ring-1"
+                                    className="pl-8 h-9 w-full sm:w-56 text-sm rounded-lg bg-muted border-border focus-visible:ring-1"
                                 />
                             </div>
 
@@ -754,7 +755,7 @@ export default function CustomerInfoView({
                                         variant="outline"
                                         size="icon"
                                         className={cn(
-                                            "h-9 w-9 rounded-lg relative",
+                                            "h-9 w-9 rounded-lg relative shrink-0",
                                             statusFilter.size > 0 &&
                                                 "border-indigo-500 text-indigo-600 dark:text-indigo-400"
                                         )}
@@ -803,11 +804,11 @@ export default function CustomerInfoView({
                                 <TabsList className="h-9">
                                     <TabsTrigger value="table" className="h-7 px-3 gap-1.5 text-xs">
                                         <List className="w-3.5 h-3.5" />
-                                        Table
+                                        <span className="hidden xs:inline">Table</span>
                                     </TabsTrigger>
                                     <TabsTrigger value="grid" className="h-7 px-3 gap-1.5 text-xs">
                                         <LayoutGrid className="w-3.5 h-3.5" />
-                                        Grid
+                                        <span className="hidden xs:inline">Grid</span>
                                     </TabsTrigger>
                                 </TabsList>
                             </Tabs>
@@ -818,7 +819,8 @@ export default function CustomerInfoView({
                 {/* Table / Grid card */}
                 <Card className="border-border/70 shadow-sm overflow-hidden p-0">
                     {viewMode === "table" ? (
-                        <Table>
+                        <div className="overflow-x-auto">
+                        <Table className="min-w-[720px]">
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-b border-border hover:bg-muted/50">
                                     <TableHead className="w-10 pl-4">
@@ -1028,8 +1030,9 @@ export default function CustomerInfoView({
                                     })}
                             </TableBody>
                         </Table>
+                        </div>
                     ) : (
-                        <div className="p-4">
+                        <div className="p-3 sm:p-4">
                             {loading ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                                     {Array.from({ length: 6 }).map((_, i) => (
@@ -1067,8 +1070,8 @@ export default function CustomerInfoView({
                     )}
 
                     {/* Footer / Pagination */}
-                    <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-muted/20">
-                        <p className="text-sm text-muted-foreground">
+                    <div className="border-t border-border px-3 sm:px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-muted/20">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                             Showing{" "}
                             {filtered.length === 0 ? 0 : (page - 1) * pageSize + 1}–
                             {Math.min(page * pageSize, filtered.length)} of{" "}
@@ -1077,7 +1080,7 @@ export default function CustomerInfoView({
                             </span>{" "}
                             leads
                         </p>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 self-end sm:self-auto">
                             <Button
                                 variant="outline"
                                 size="icon"
