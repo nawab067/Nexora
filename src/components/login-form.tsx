@@ -96,7 +96,7 @@ export function LoginForm({
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "https://nexora-crm-brown.vercel.app/auth/login-callback",
+        redirectTo: "https://nexora-crm-ai.vercel.app/auth/login-callback",
       },
     });
   };
