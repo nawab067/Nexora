@@ -58,7 +58,6 @@ import {
   Bell,
   HelpCircle,
   Settings,
-  RefreshCw,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
@@ -105,7 +104,6 @@ interface CustomerInfoViewProps {
   onDelete: (id: string) => void;
   onEdit: (id: string) => void;
   dashboardreview: DashboardProps;
-  
 }
 
 // ─── Avatar colors ────────────────────────────────────────────────────────────
@@ -173,7 +171,7 @@ function DesignationBadge({ designation }: { designation?: string }) {
     <Badge
       variant="outline"
       className={cn(
-        "gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide",
+        "gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide whitespace-nowrap",
         style
       )}
     >
@@ -201,22 +199,24 @@ function StatCard({
   iconColor?: string;
 }) {
   return (
-    <Card className="flex-1 min-w-0 shadow-sm border-border/70 hover:shadow-md transition-shadow">
-      <CardContent className="p-5">
+    <Card className="min-w-0 shadow-sm border-border/70 hover:shadow-md transition-shadow">
+      <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between mb-3">
           <p className="text-sm text-muted-foreground font-medium leading-snug">{label}</p>
-          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", iconBg)}>
+          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", iconBg)}>
             <Icon className={cn("w-4.5 h-4.5", iconColor)} />
           </div>
         </div>
-        <p className="text-3xl font-bold text-foreground tracking-tight mb-1">{value}</p>
+        <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1 truncate">
+          {value}
+        </p>
         <p className={cn("text-xs font-medium", subColor)}>{sub}</p>
       </CardContent>
     </Card>
   );
 }
 
-// ─── Grid card (used when view mode = grid) ───────────────────────────────────
+// ─── Grid card (used when view mode = grid, and as the mobile row layout) ─────
 function CustomerCard({
   customer,
   index,
@@ -243,7 +243,7 @@ function CustomerCard({
             </a>
           </div>
         </div>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 gap-2">
           <DesignationBadge designation={customer.Designation} />
           <span className="text-sm font-semibold text-foreground truncate max-w-[45%]">
             {customer.phonenum || "—"}
@@ -308,7 +308,6 @@ export default function CustomerInfoView({
   onDelete,
   onEdit,
   dashboardreview,
-  
 }: CustomerInfoViewProps) {
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [designationFilter, setDesignationFilter] = useState<Set<string>>(new Set());
@@ -357,28 +356,28 @@ export default function CustomerInfoView({
   return (
     <>
       {/* ── Navbar ── */}
-      <header className="sticky top-0 z-10 h-14 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border flex items-center px-4 gap-3 shrink-0">
-        <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-        <Separator orientation="vertical" className="h-5" />
-        <div className="flex items-center gap-2 flex-1 max-w-sm">
+      <header className="sticky top-0 z-10 h-14 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0">
+        <SidebarTrigger className="text-muted-foreground hover:text-foreground shrink-0" />
+        <Separator orientation="vertical" className="h-5 hidden sm:block" />
+        <div className="hidden sm:flex items-center gap-2 flex-1 max-w-sm min-w-0">
           <Search className="w-4 h-4 text-muted-foreground shrink-0" />
           <input
             type="text"
             placeholder="Search across CRM..."
-            className="w-full text-sm text-foreground placeholder:text-muted-foreground bg-transparent outline-none"
+            className="w-full text-sm text-foreground placeholder:text-muted-foreground bg-transparent outline-none min-w-0"
           />
         </div>
-        <div className="flex items-center gap-1 ml-auto">
-          <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground">
+        <div className="flex items-center gap-0.5 sm:gap-1 ml-auto shrink-0">
+          <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hidden sm:inline-flex">
             <Bell className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground">
+          <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hidden sm:inline-flex">
             <HelpCircle className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground">
+          <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hidden xs:inline-flex">
             <Settings className="w-4 h-4" />
           </Button>
-          <Separator orientation="vertical" className="h-5 mx-2" />
+          <Separator orientation="vertical" className="h-5 mx-1 sm:mx-2 hidden sm:block" />
           <Avatar className="w-8 h-8">
             <AvatarFallback className="bg-indigo-600 text-white text-xs font-bold">
               AR
@@ -388,11 +387,11 @@ export default function CustomerInfoView({
       </header>
 
       {/* ── Page body ── */}
-      <div className="p-6 space-y-5 bg-background min-h-[calc(100vh-3.5rem)]">
+      <div className="p-3 sm:p-5 lg:p-6 space-y-4 sm:space-y-5 bg-background min-h-[calc(100vh-3.5rem)]">
         {/* Page heading */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
               Contact Management
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
@@ -404,24 +403,26 @@ export default function CustomerInfoView({
               variant="outline"
               size="sm"
               onClick={exportCSV}
-              className="h-9 text-sm gap-1.5 rounded-lg"
+              className="h-9 flex-1 sm:flex-none text-sm gap-1.5 rounded-lg"
             >
               <Download className="w-4 h-4" />
-              Export CSV
+              <span className="hidden xs:inline">Export CSV</span>
+              <span className="xs:hidden">Export</span>
             </Button>
             <Button
               size="sm"
               onClick={onAddCustomer}
-              className="h-9 text-sm gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4"
+              className="h-9 flex-1 sm:flex-none text-sm gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4"
             >
               <Plus className="w-4 h-4" />
-              Add New Customer
+              <span className="hidden xs:inline">Add New Customer</span>
+              <span className="xs:hidden">Add</span>
             </Button>
           </div>
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 xs:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
           <StatCard
             icon={Users}
             label="Total Active Customers"
@@ -460,158 +461,294 @@ export default function CustomerInfoView({
 
         {/* Toolbar */}
         <Card className="border-border/70 shadow-sm">
-          <CardContent className="p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                <Input
-                  placeholder="Search leads…"
-                  value={search}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  className="pl-8 h-9 w-56 text-sm rounded-lg bg-muted border-border focus-visible:ring-1"
-                />
-              </div>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      "h-9 w-9 rounded-lg relative",
-                      designationFilter.size > 0 &&
-                        "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                    )}
-                  >
-                    <SlidersHorizontal className="w-4 h-4" />
-                    {designationFilter.size > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] flex items-center justify-center font-semibold">
-                        {designationFilter.size}
-                      </span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-56 p-2">
-                  <p className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
-                    Filter by designation
-                  </p>
-                  {uniqueDesignations.length === 0 && (
-                    <p className="text-xs text-muted-foreground px-2 py-1.5">
-                      No designations yet
-                    </p>
-                  )}
-                  {uniqueDesignations.map((d) => (
-                    <label
-                      key={d}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer text-sm"
-                    >
-                      <Checkbox
-                        checked={designationFilter.has(d)}
-                        onCheckedChange={() => toggleDesignation(d)}
-                      />
-                      {d}
-                    </label>
-                  ))}
-                  {designationFilter.size > 0 && (
-                    <button
-                      onClick={() => setDesignationFilter(new Set())}
-                      className="w-full text-xs text-rose-500 hover:text-rose-600 px-2 py-1.5 text-left"
-                    >
-                      Clear filters
-                    </button>
-                  )}
-                </PopoverContent>
-              </Popover>
-
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "table" | "grid")}>
-                <TabsList className="h-9">
-                  <TabsTrigger value="table" className="h-7 px-3 gap-1.5 text-xs">
-                    <List className="w-3.5 h-3.5" />
-                    Table
-                  </TabsTrigger>
-                  <TabsTrigger value="grid" className="h-7 px-3 gap-1.5 text-xs">
-                    <LayoutGrid className="w-3.5 h-3.5" />
-                    Grid
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              
-                
+          <CardContent className="p-3 flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[140px] sm:flex-none">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search leads…"
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="pl-8 h-9 w-full sm:w-56 text-sm rounded-lg bg-muted border-border focus-visible:ring-1"
+              />
             </div>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={cn(
+                    "h-9 w-9 rounded-lg relative shrink-0",
+                    designationFilter.size > 0 &&
+                      "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                  )}
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  {designationFilter.size > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] flex items-center justify-center font-semibold">
+                      {designationFilter.size}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-56 p-2">
+                <p className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
+                  Filter by designation
+                </p>
+                {uniqueDesignations.length === 0 && (
+                  <p className="text-xs text-muted-foreground px-2 py-1.5">
+                    No designations yet
+                  </p>
+                )}
+                {uniqueDesignations.map((d) => (
+                  <label
+                    key={d}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer text-sm"
+                  >
+                    <Checkbox
+                      checked={designationFilter.has(d)}
+                      onCheckedChange={() => toggleDesignation(d)}
+                    />
+                    {d}
+                  </label>
+                ))}
+                {designationFilter.size > 0 && (
+                  <button
+                    onClick={() => setDesignationFilter(new Set())}
+                    className="w-full text-xs text-rose-500 hover:text-rose-600 px-2 py-1.5 text-left"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </PopoverContent>
+            </Popover>
+
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "table" | "grid")} className="shrink-0">
+              <TabsList className="h-9">
+                <TabsTrigger value="table" className="h-7 px-2.5 sm:px-3 gap-1.5 text-xs">
+                  <List className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Table</span>
+                </TabsTrigger>
+                <TabsTrigger value="grid" className="h-7 px-2.5 sm:px-3 gap-1.5 text-xs">
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Grid</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardContent>
         </Card>
 
         {/* Table / Grid card */}
         <Card className="border-border/70 shadow-sm overflow-hidden p-0">
           {viewMode === "table" ? (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50 border-b border-border hover:bg-muted/50">
-                  <TableHead className="w-10 pl-4">
-                    <Checkbox checked={allSelected} onCheckedChange={onToggleAll} className="rounded" />
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">
-                    Customer Name
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Address
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Designation
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Contact
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right pr-5">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {loading &&
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i} className="border-b border-border">
-                      <TableCell className="pl-4">
-                        <Skeleton className="h-4 w-4 rounded" />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="h-9 w-9 rounded-full" />
-                          <div className="space-y-1.5">
-                            <Skeleton className="h-3.5 w-28" />
-                            <Skeleton className="h-3 w-36" />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-3.5 w-28" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-5 w-20 rounded-full" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-3.5 w-16" />
-                      </TableCell>
-                      <TableCell className="pr-5">
-                        <Skeleton className="h-6 w-20 ml-auto" />
-                      </TableCell>
+            <>
+              {/* Desktop / tablet: real table with horizontal scroll if needed */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 border-b border-border hover:bg-muted/50">
+                      <TableHead className="w-10 pl-4">
+                        <Checkbox checked={allSelected} onCheckedChange={onToggleAll} className="rounded" />
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">
+                        Customer Name
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Address
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Designation
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Contact
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right pr-5">
+                        Actions
+                      </TableHead>
                     </TableRow>
+                  </TableHeader>
+
+                  <TableBody>
+                    {loading &&
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i} className="border-b border-border">
+                          <TableCell className="pl-4">
+                            <Skeleton className="h-4 w-4 rounded" />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="h-9 w-9 rounded-full" />
+                              <div className="space-y-1.5">
+                                <Skeleton className="h-3.5 w-28" />
+                                <Skeleton className="h-3 w-36" />
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-3.5 w-28" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-5 w-20 rounded-full" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-3.5 w-16" />
+                          </TableCell>
+                          <TableCell className="pr-5">
+                            <Skeleton className="h-6 w-20 ml-auto" />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+
+                    {!loading && displayRows.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="py-16 text-center">
+                          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                            <Users className="h-10 w-10 opacity-20" />
+                            <p className="text-sm font-semibold text-foreground">No customer found</p>
+                            {(search || designationFilter.size > 0) && (
+                              <p className="text-xs">Try a different search or filter</p>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+
+                    {!loading &&
+                      displayRows.map((customer, i) => {
+                        const globalIndex = (page - 1) * pageSize + i;
+                        const isSelected = selectedIds.has(customer._id);
+                        return (
+                          <TableRow
+                            key={customer._id}
+                            className={cn(
+                              "group border-b border-border transition-colors last:border-0",
+                              isSelected ? "bg-indigo-500/5" : "hover:bg-muted/40"
+                            )}
+                          >
+                            <TableCell className="pl-4">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => onToggleOne(customer._id)}
+                                className="rounded"
+                              />
+                            </TableCell>
+
+                            <TableCell className="py-3">
+                              <div className="flex items-center gap-3">
+                                <LeadAvatar name={customer.name} index={globalIndex} imageUrl={customer.image_url} />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-foreground leading-tight truncate">
+                                    {customer.name}
+                                  </p>
+                                  <a
+                                    href={`mailto:${customer.email}`}
+                                    className="text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate block"
+                                  >
+                                    {customer.email}
+                                  </a>
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            <TableCell>
+                              <span className="text-sm text-muted-foreground truncate max-w-[160px] block">
+                                {customer.address || "—"}
+                              </span>
+                            </TableCell>
+
+                            <TableCell>
+                              <DesignationBadge designation={customer.Designation} />
+                            </TableCell>
+
+                            <TableCell>
+                              <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+                                {customer.phonenum || "—"}
+                              </span>
+                            </TableCell>
+
+                            <TableCell className="pr-5">
+                              <TooltipProvider delayDuration={100}>
+                                <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
+                                        onClick={() => onEdit(customer._id)}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">Edit</TooltipContent>
+                                  </Tooltip>
+
+                                  <AlertDialog>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">Delete</TooltipContent>
+                                    </Tooltip>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete customer?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently remove{" "}
+                                          <span className="font-semibold text-foreground">{customer.name}</span>{" "}
+                                          and cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          className="bg-destructive hover:bg-destructive/90"
+                                          onClick={() => onDelete(customer._id)}
+                                        >
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </TooltipProvider>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile: stacked card rows instead of a cramped table */}
+              <div className="md:hidden p-3 space-y-3">
+                {loading &&
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="p-3 rounded-xl border border-border/70 flex items-center gap-3">
+                      <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                      <div className="space-y-1.5 flex-1">
+                        <Skeleton className="h-3.5 w-28" />
+                        <Skeleton className="h-3 w-36" />
+                      </div>
+                    </div>
                   ))}
 
                 {!loading && displayRows.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-16 text-center">
-                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <Users className="h-10 w-10 opacity-20" />
-                        <p className="text-sm font-semibold text-foreground">No customer found</p>
-                        {(search || designationFilter.size > 0) && (
-                          <p className="text-xs">Try a different search or filter</p>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground py-12">
+                    <Users className="h-10 w-10 opacity-20" />
+                    <p className="text-sm font-semibold text-foreground">No customer found</p>
+                    {(search || designationFilter.size > 0) && (
+                      <p className="text-xs">Try a different search or filter</p>
+                    )}
+                  </div>
                 )}
 
                 {!loading &&
@@ -619,118 +756,94 @@ export default function CustomerInfoView({
                     const globalIndex = (page - 1) * pageSize + i;
                     const isSelected = selectedIds.has(customer._id);
                     return (
-                      <TableRow
+                      <div
                         key={customer._id}
                         className={cn(
-                          "group border-b border-border transition-colors last:border-0",
-                          isSelected ? "bg-indigo-500/5" : "hover:bg-muted/40"
+                          "p-3 rounded-xl border transition-colors",
+                          isSelected ? "bg-indigo-500/5 border-indigo-500/30" : "border-border/70"
                         )}
                       >
-                        <TableCell className="pl-4">
+                        <div className="flex items-start gap-3">
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={() => onToggleOne(customer._id)}
-                            className="rounded"
+                            className="rounded mt-2.5 shrink-0"
                           />
-                        </TableCell>
-
-                        <TableCell className="py-3">
-                          <div className="flex items-center gap-3">
-                            <LeadAvatar name={customer.name} index={globalIndex} imageUrl={customer.image_url} />
-                            <div>
-                              <p className="text-sm font-semibold text-foreground leading-tight">
-                                {customer.name}
-                              </p>
-                              <a
-                                href={`mailto:${customer.email}`}
-                                className="text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                              >
-                                {customer.email}
-                              </a>
-                            </div>
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground truncate max-w-[160px] block">
-                            {customer.address || "—"}
-                          </span>
-                        </TableCell>
-
-                        <TableCell>
-                          <DesignationBadge designation={customer.Designation} />
-                        </TableCell>
-
-                        <TableCell>
-                          <span className="text-sm font-semibold text-foreground">
-                            {customer.phonenum || "—"}
-                          </span>
-                        </TableCell>
-
-                        <TableCell className="pr-5">
-                          <TooltipProvider delayDuration={100}>
-                            <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
-                                    onClick={() => onEdit(customer._id)}
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">Edit</TooltipContent>
-                              </Tooltip>
-
-                              <AlertDialog>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <AlertDialogTrigger asChild>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-8 w-8 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">Delete</TooltipContent>
-                                </Tooltip>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete customer?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will permanently remove{" "}
-                                      <span className="font-semibold text-foreground">{customer.name}</span>{" "}
-                                      and cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      className="bg-destructive hover:bg-destructive/90"
-                                      onClick={() => onDelete(customer._id)}
+                          <LeadAvatar name={customer.name} index={globalIndex} imageUrl={customer.image_url} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-foreground leading-tight truncate">
+                                  {customer.name}
+                                </p>
+                                <a
+                                  href={`mailto:${customer.email}`}
+                                  className="text-xs text-muted-foreground truncate block"
+                                >
+                                  {customer.email}
+                                </a>
+                              </div>
+                              <div className="flex items-center gap-0.5 shrink-0 -mt-1 -mr-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 rounded-lg text-muted-foreground"
+                                  onClick={() => onEdit(customer._id)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 rounded-lg text-rose-500 hover:bg-rose-500/10"
                                     >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete customer?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently remove{" "}
+                                        <span className="font-semibold text-foreground">{customer.name}</span>{" "}
+                                        and cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        className="bg-destructive hover:bg-destructive/90"
+                                        onClick={() => onDelete(customer._id)}
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
                             </div>
-                          </TooltipProvider>
-                        </TableCell>
-                      </TableRow>
+                            <div className="flex items-center justify-between gap-2 mt-2">
+                              <DesignationBadge designation={customer.Designation} />
+                              <span className="text-sm font-semibold text-foreground truncate">
+                                {customer.phonenum || "—"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate mt-1.5">
+                              {customer.address || "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     );
                   })}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           ) : (
-            <div className="p-4">
+            <div className="p-3 sm:p-4">
               {loading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Skeleton key={i} className="h-40 rounded-xl" />
                   ))}
@@ -744,7 +857,7 @@ export default function CustomerInfoView({
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
                   {displayRows.map((customer, i) => (
                     <CustomerCard
                       key={customer._id}
@@ -760,13 +873,13 @@ export default function CustomerInfoView({
           )}
 
           {/* Footer / Pagination */}
-          <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-muted/20">
-            <p className="text-sm text-muted-foreground">
+          <div className="border-t border-border px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-muted/20">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Showing {filtered.length === 0 ? 0 : (page - 1) * pageSize + 1}–
               {Math.min(page * pageSize, filtered.length)} of{" "}
               <span className="font-semibold text-foreground">{filtered.length}</span> customers
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 self-end sm:self-auto">
               <Button
                 variant="outline"
                 size="icon"
