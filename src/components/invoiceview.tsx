@@ -127,7 +127,7 @@ function StatusBadge({ status }: { status: InvoiceStatus }) {
     <Badge
       variant="outline"
       className={cn(
-        "gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide whitespace-nowrap border-0 ring-1 ring-inset",
+        "gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide whitespace-nowrap border-0 ring-1 ring-inset shrink-0",
         s.badge
       )}
     >
@@ -176,15 +176,15 @@ function StatCard({
   return (
     <Card className="min-w-0 relative overflow-hidden border-slate-200/70 shadow-sm ring-1 ring-slate-900/[0.02] transition-shadow hover:shadow-md">
       <div className={cn("absolute inset-x-0 top-0 h-1", accent)} />
-      <CardContent className="p-4 sm:p-5 flex items-center gap-3.5">
-        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", iconBg)}>
-          <Icon className={cn("w-4.5 h-4.5", iconColor)} />
+      <CardContent className="p-3.5 sm:p-4 lg:p-5 flex items-center gap-3 sm:gap-3.5">
+        <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0", iconBg)}>
+          <Icon className={cn("w-4 h-4 sm:w-4.5 sm:h-4.5", iconColor)} />
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold leading-snug truncate">
+          <p className="text-[10px] sm:text-[11px] uppercase tracking-wide text-slate-500 font-semibold leading-snug truncate">
             {label}
           </p>
-          <p className="text-xl font-bold text-slate-900 tracking-tight truncate mt-0.5">{value}</p>
+          <p className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate mt-0.5">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -319,8 +319,8 @@ export default function InvoiceListView({
             <Receipt className="w-5 h-5 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Invoices</h1>
-            <p className="text-sm text-slate-500 mt-0.5">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 tracking-tight">Invoices</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5 truncate">
               Generate, track, and manage billing for every lead.
             </p>
           </div>
@@ -328,7 +328,7 @@ export default function InvoiceListView({
         <Button
           size="sm"
           onClick={() => router.push("/admin/invoice/add")}
-          className="h-9 text-sm gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 shrink-0 shadow-sm"
+          className="h-9 text-sm gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 w-full sm:w-auto shrink-0 shadow-sm"
         >
           <Plus className="w-4 h-4" />
           New Invoice
@@ -336,7 +336,7 @@ export default function InvoiceListView({
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <StatCard
           icon={Receipt}
           label="Total Outstanding"
@@ -365,17 +365,17 @@ export default function InvoiceListView({
 
       {/* Toolbar */}
       <Card className="border-slate-200/70 shadow-sm ring-1 ring-slate-900/[0.02]">
-        <CardContent className="p-3 flex items-center justify-between gap-2">
-          <div className="relative flex-1 min-w-[140px] sm:flex-none">
+        <CardContent className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="relative w-full sm:w-72">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <Input
               placeholder="Search invoices…"
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-8 h-9 w-full sm:w-72 text-sm rounded-lg bg-slate-50 border-slate-200 focus-visible:ring-2 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-400"
+              className="pl-8 h-9 w-full text-sm rounded-lg bg-slate-50 border-slate-200 focus-visible:ring-2 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-400"
             />
           </div>
-          <p className="hidden sm:block text-xs text-slate-400 font-medium shrink-0">
+          <p className="text-xs text-slate-400 font-medium shrink-0">
             {invoices.length} {invoices.length === 1 ? "invoice" : "invoices"}
           </p>
         </CardContent>
@@ -383,7 +383,7 @@ export default function InvoiceListView({
 
       {/* Table */}
       <Card className="border-slate-200/70 shadow-sm ring-1 ring-slate-900/[0.02] overflow-hidden p-0">
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto">
           <Table>
             <TableHeader className="sticky top-0 z-10">
               <TableRow className="bg-slate-50/95 backdrop-blur border-b border-slate-200 hover:bg-slate-50/95">
@@ -576,8 +576,8 @@ export default function InvoiceListView({
           </Table>
         </div>
 
-        {/* Mobile stacked rows */}
-        <div className="md:hidden divide-y divide-slate-100">
+        {/* Stacked card rows: used on mobile AND tablet/laptop widths below lg */}
+        <div className="lg:hidden divide-y divide-slate-100">
           {loading &&
             Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="p-3 flex items-center gap-3">
@@ -590,16 +590,18 @@ export default function InvoiceListView({
             ))}
 
           {!loading && invoices.length === 0 && (
-            <div className="flex flex-col items-center gap-2 text-slate-400 py-12">
+            <div className="flex flex-col items-center gap-2 text-slate-400 py-12 px-4 text-center">
               {search ? (
                 <>
                   <SearchX className="h-10 w-10 opacity-20" />
                   <p className="text-sm font-semibold text-slate-700">No results found</p>
+                  <p className="text-xs">Nothing matches "{search}" — try a different term</p>
                 </>
               ) : (
                 <>
                   <Receipt className="h-10 w-10 opacity-20" />
                   <p className="text-sm font-semibold text-slate-700">No invoices yet</p>
+                  <p className="text-xs">Create your first invoice to get started</p>
                 </>
               )}
             </div>
@@ -607,57 +609,75 @@ export default function InvoiceListView({
 
           {!loading &&
             invoices.map((inv, i) => {
+              const isSelected = selectedIds.has(inv._id);
               const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
               return (
                 <div
                   key={inv._id}
                   className={cn(
-                    "p-3 active:bg-slate-50 border-l-2",
-                    inv.status === "overdue" ? "border-l-rose-400" : "border-l-transparent"
+                    "p-3 sm:p-4 active:bg-slate-50 border-l-2",
+                    isSelected
+                      ? "bg-indigo-500/5"
+                      : inv.status === "overdue"
+                      ? "border-l-rose-400"
+                      : "border-l-transparent"
                   )}
                 >
-                  <div onClick={() => onView(inv)} className="cursor-pointer">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Avatar className={cn("h-9 w-9 shrink-0 ring-2", color.ring)}>
-                          <AvatarFallback className={cn(color.bg, color.text, "text-xs font-bold")}>
-                            {getInitials(inv.customer_name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 truncate">{inv.customer_name}</p>
-                          <p className="text-xs text-slate-500 truncate">
-                            {inv.invoice_no} · {inv.issue_date}
-                          </p>
-                        </div>
-                      </div>
-                      <StatusBadge status={inv.status} />
+                  <div className="flex items-start gap-2">
+                    <div onClick={(e) => e.stopPropagation()} className="pt-1 shrink-0">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => onToggleOne(inv._id)}
+                        className="rounded"
+                      />
                     </div>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-xs text-slate-500 truncate">{inv.lead_name}</span>
-                      <span className="text-sm font-semibold text-slate-900">
-                        {fmt(inv.grand_total, currency)}
-                      </span>
+
+                    <div onClick={() => onView(inv)} className="cursor-pointer flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                          <Avatar className={cn("h-9 w-9 shrink-0 ring-2", color.ring)}>
+                            <AvatarFallback className={cn(color.bg, color.text, "text-xs font-bold")}>
+                              {getInitials(inv.customer_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 truncate">{inv.customer_name}</p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {inv.invoice_no} · {inv.issue_date}
+                            </p>
+                          </div>
+                        </div>
+                        <StatusBadge status={inv.status} />
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mt-3">
+                        <span className="text-xs text-slate-500 truncate">{inv.lead_name}</span>
+                        <span className="text-sm font-semibold text-slate-900 shrink-0">
+                          {fmt(inv.grand_total, currency)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 pl-0 sm:pl-8">
                     <a
                       href={inv.pdf_url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full px-2.5 py-1"
                     >
                       <FileText className="h-3 w-3" />
                       View PDF
                     </a>
-                    <RowActions
-                      invoice={inv}
-                      onView={onView}
-                      onEdit={onEdit}
-                      onDelete={onDelete}
-                      onSendEmail={onSendEmail}
-                    />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <RowActions
+                        invoice={inv}
+                        onView={onView}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onSendEmail={onSendEmail}
+                      />
+                    </div>
                   </div>
                 </div>
               );
@@ -665,18 +685,18 @@ export default function InvoiceListView({
         </div>
 
         {/* Pagination */}
-        <div className="border-t border-slate-200 px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-50/40">
-          <p className="text-xs sm:text-sm text-slate-500">
+        <div className="border-t border-slate-200 px-3 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-50/40">
+          <p className="text-xs sm:text-sm text-slate-500 text-center sm:text-left">
             Showing <span className="font-semibold text-slate-900">{rangeLabel}</span> of{" "}
             <span className="font-semibold text-slate-900">{invoices.length}</span> invoices
           </p>
-          <div className="flex items-center gap-1 self-end sm:self-auto">
+          <div className="flex items-center gap-1 flex-wrap justify-center sm:justify-end">
             <Button
               variant="outline"
               size="icon"
               onClick={() => onPageChange(Math.max(1, page - 1))}
               disabled={page === 1}
-              className="w-8 h-8 rounded-lg border-slate-200"
+              className="w-8 h-8 rounded-lg border-slate-200 shrink-0"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
@@ -693,7 +713,7 @@ export default function InvoiceListView({
                   variant={p === page ? "default" : "outline"}
                   onClick={() => onPageChange(p)}
                   className={cn(
-                    "w-8 h-8 rounded-lg text-xs font-semibold",
+                    "w-8 h-8 rounded-lg text-xs font-semibold shrink-0",
                     p === page
                       ? "bg-indigo-600 hover:bg-indigo-500 text-white border-0"
                       : "border-slate-200 text-slate-600"
@@ -709,7 +729,7 @@ export default function InvoiceListView({
               size="icon"
               onClick={() => onPageChange(Math.min(totalPages, page + 1))}
               disabled={page === totalPages}
-              className="w-8 h-8 rounded-lg border-slate-200"
+              className="w-8 h-8 rounded-lg border-slate-200 shrink-0"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
