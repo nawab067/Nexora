@@ -52,7 +52,7 @@ function Stepper({ step }: { step: "form" | "preview" }) {
     { key: "preview", label: "Preview" },
   ];
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 shrink-0">
       {steps.map((s, i) => {
         const active = s.key === step;
         const done = step === "preview" && s.key === "form";
@@ -73,7 +73,7 @@ function Stepper({ step }: { step: "form" | "preview" }) {
               </div>
               <span
                 className={cn(
-                  "text-xs font-medium",
+                  "text-xs font-medium whitespace-nowrap",
                   active ? "text-foreground" : "text-muted-foreground",
                 )}
               >
@@ -81,7 +81,7 @@ function Stepper({ step }: { step: "form" | "preview" }) {
               </span>
             </div>
             {i < steps.length - 1 && (
-              <div className="w-6 h-px bg-border shrink-0" />
+              <div className="w-4 sm:w-6 h-px bg-border shrink-0" />
             )}
           </React.Fragment>
         );
@@ -129,28 +129,29 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
     };
     fetchUser();
   }, []);
+
   const handleGeneratePDF = async () => {
-  if (!generatedInvoice?._id) {
-    alert("Generate the invoice first.");
-    return;
-  }
+    if (!generatedInvoice?._id) {
+      alert("Generate the invoice first.");
+      return;
+    }
 
-  try {
-    const res = await axios.get(
-      `${baseurl}/invoice/pdf/${generatedInvoice._id}`
-    );
+    try {
+      const res = await axios.get(
+        `${baseurl}/invoice/pdf/${generatedInvoice._id}`,
+      );
 
-    alert("PDF Generated Successfully");
+      alert("PDF Generated Successfully");
 
-    // Update local state with the returned URL
-    setGeneratedInvoice((prev: any) => ({
-      ...prev,
-      pdf_url: res.data.pdf_url,
-    }));
-  } catch (err) {
-    console.error(err);
-  }
-};
+      // Update local state with the returned URL
+      setGeneratedInvoice((prev: any) => ({
+        ...prev,
+        pdf_url: res.data.pdf_url,
+      }));
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchInvoice = async () => {
     try {
@@ -272,18 +273,21 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
 
   // Backend already computes and returns everything below — no client-side math needed.
   const price = Number(generatedInvoice?.price ?? invoice.price ?? 0);
-  const discount = Number(generatedInvoice?.discount ?? invoice.discount ?? 0);
+  const discount = Number(
+    generatedInvoice?.discount ?? invoice.discount ?? 0,
+  );
   const taxPercentage = Number(generatedInvoice?.tax_percentage ?? 0);
   const taxAmount = Number(generatedInvoice?.tax_amount ?? 0);
   const total = Number(generatedInvoice?.grand_total ?? 0);
   const discountAmount = (price * discount) / 100;
 
-  const customerName = generatedInvoice?.customer_name ?? invoice.customer_name;
+  const customerName =
+    generatedInvoice?.customer_name ?? invoice.customer_name;
   const leadName = generatedInvoice?.lead_name ?? invoice.lead_name;
 
   if (fetching) {
     return (
-      <div className="px-6 pt-8 pb-10 max-w-2xl w-full mx-auto space-y-4">
+      <div className="px-4 sm:px-6 pt-6 sm:pt-8 pb-10 max-w-2xl w-full mx-auto space-y-4">
         <Skeleton className="h-6 w-40" />
         <Skeleton className="h-40 w-full rounded-xl" />
       </div>
@@ -292,12 +296,12 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
 
   return (
     <div className="flex flex-col bg-background min-h-[calc(100vh-3.5rem)]">
-      <div className="px-6 pt-8 pb-5 flex items-start justify-between shrink-0 max-w-2xl w-full mx-auto">
-        <div>
+      <div className="px-4 sm:px-6 pt-6 sm:pt-8 pb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 shrink-0 max-w-2xl w-full mx-auto">
+        <div className="min-w-0">
           <p className="text-[11px] font-semibold tracking-wide text-indigo-600 dark:text-indigo-400 uppercase mb-1">
             {isEdit ? "Edit Invoice" : "New Invoice"}
           </p>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
             AI Invoice Generator
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -307,10 +311,10 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
         <Stepper step={step} />
       </div>
 
-      <div className="px-6 pb-10 max-w-2xl w-full mx-auto">
+      <div className="px-4 sm:px-6 pb-10 max-w-2xl w-full mx-auto">
         {step === "form" ? (
           <Card className="bg-card border border-border shadow-sm rounded-xl">
-            <CardContent className="p-6 space-y-5">
+            <CardContent className="p-4 sm:p-6 space-y-5">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-foreground">
                   Customer <span className="text-rose-600">*</span>
@@ -321,7 +325,7 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                     setInvoice((prev) => ({ ...prev, customer_name: value }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Customer" />
                   </SelectTrigger>
                   <SelectContent>
@@ -345,7 +349,7 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                     setInvoice((prev) => ({ ...prev, lead_name: value }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Lead" />
                   </SelectTrigger>
                   <SelectContent>
@@ -359,7 +363,7 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-foreground">
                     Price <span className="text-rose-600">*</span>
@@ -370,6 +374,7 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                     </span>
                     <Input
                       type="number"
+                      inputMode="decimal"
                       className="pl-8"
                       value={invoice.price}
                       onChange={(e) =>
@@ -389,6 +394,7 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                   <div className="relative">
                     <Input
                       type="number"
+                      inputMode="decimal"
                       className="pr-8"
                       value={invoice.discount}
                       onChange={(e) =>
@@ -426,8 +432,8 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                   )}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center mt-2.5">
-                  AI pulls customer &amp; lead details automatically — nothing
-                  is sent until you approve it.
+                  AI pulls customer &amp; lead details automatically —
+                  nothing is sent until you approve it.
                 </p>
               </div>
             </CardContent>
@@ -443,19 +449,19 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
             </button>
 
             <Card className="bg-card border border-border shadow-sm rounded-xl">
-              <CardContent className="p-6 space-y-5">
-                <div className="flex items-start justify-between">
-                  <div>
+              <CardContent className="p-4 sm:p-6 space-y-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">
                       Invoice number
                     </p>
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className="text-sm font-semibold text-foreground truncate">
                       {generatedInvoice?.invoice_no ?? "—"}
                     </p>
                   </div>
                   <Badge
                     variant="outline"
-                    className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 capitalize"
+                    className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 capitalize shrink-0"
                   >
                     {generatedInvoice?.status ?? "draft"}
                   </Badge>
@@ -509,11 +515,11 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                 <Separator />
 
                 <div className="space-y-1.5 text-sm">
-                  <div className="flex justify-between">
+                  <div className="flex justify-between gap-3">
                     <span className="text-muted-foreground">Price</span>
                     <span className="text-foreground">Rs {money(price)}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between gap-3">
                     <span className="text-muted-foreground">
                       Discount ({discount}%)
                     </span>
@@ -521,7 +527,7 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                       -Rs {money(discountAmount)}
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between gap-3">
                     <span className="text-muted-foreground">
                       Tax ({taxPercentage}%)
                     </span>
@@ -530,7 +536,7 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                     </span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between font-semibold">
+                  <div className="flex justify-between gap-3 font-semibold">
                     <span className="text-foreground">Grand total</span>
                     <span className="text-foreground">Rs {money(total)}</span>
                   </div>
@@ -550,7 +556,7 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
               </CardContent>
             </Card>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 variant="outline"
                 onClick={handleSaveDraft}
@@ -564,8 +570,10 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                 )}
                 Save Draft
               </Button>
-              <Button className="flex-1 h-10 gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg"
-                onClick={handleGeneratePDF}>
+              <Button
+                className="flex-1 h-10 gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg"
+                onClick={handleGeneratePDF}
+              >
                 <Download className="w-4 h-4" />
                 Generate PDF
               </Button>

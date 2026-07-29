@@ -141,14 +141,19 @@ function PriceRow({
   muted?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between py-1.5">
-      <span className={cn("text-sm", muted ? "text-muted-foreground" : "text-foreground")}>
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span
+        className={cn(
+          "text-sm",
+          muted ? "text-muted-foreground" : "text-foreground",
+        )}
+      >
         {label}
       </span>
       <span
         className={cn(
-          "text-sm font-medium tabular-nums",
-          muted ? "text-muted-foreground" : "text-foreground"
+          "text-sm font-medium tabular-nums whitespace-nowrap",
+          muted ? "text-muted-foreground" : "text-foreground",
         )}
       >
         {value}
@@ -170,7 +175,9 @@ export default function InvoicePreviewView({
 }: InvoicePreviewViewProps) {
   const currency = invoice?.currency ?? "£";
 
-  const discountAmount = invoice ? (invoice.price * invoice.discountPercent) / 100 : 0;
+  const discountAmount = invoice
+    ? (invoice.price * invoice.discountPercent) / 100
+    : 0;
   const taxableAmount = invoice ? invoice.price - discountAmount : 0;
   const taxAmount = invoice ? (taxableAmount * invoice.taxPercent) / 100 : 0;
   const grandTotal = invoice ? taxableAmount + taxAmount : 0;
@@ -185,9 +192,11 @@ export default function InvoicePreviewView({
         className="w-full sm:max-w-md p-0 flex flex-col gap-0 border-l border-border overflow-hidden"
       >
         {/* ── Header strip ── */}
-        <SheetHeader className="shrink-0 px-6 py-5 border-b border-border bg-muted/30 space-y-0">
+        <SheetHeader className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-b border-border bg-muted/30 space-y-0">
           <SheetTitle className="sr-only">Invoice Preview</SheetTitle>
-          <SheetDescription className="sr-only">Preview of the selected invoice</SheetDescription>
+          <SheetDescription className="sr-only">
+            Preview of the selected invoice
+          </SheetDescription>
 
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -197,7 +206,7 @@ export default function InvoicePreviewView({
               {loading || !invoice ? (
                 <Skeleton className="h-6 w-32 mt-1.5" />
               ) : (
-                <p className="text-xl font-bold text-foreground tracking-tight truncate">
+                <p className="text-lg sm:text-xl font-bold text-foreground tracking-tight truncate">
                   {invoice.invoiceNo}
                 </p>
               )}
@@ -209,7 +218,7 @@ export default function InvoicePreviewView({
                 variant="outline"
                 className={cn(
                   "gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide shrink-0",
-                  status!.badge
+                  status!.badge,
                 )}
               >
                 {StatusIcon && <StatusIcon className="w-3 h-3" />}
@@ -230,13 +239,13 @@ export default function InvoicePreviewView({
         {/* ── Scrollable body ── */}
         <div className="flex-1 overflow-y-auto min-h-0">
           {loading || !invoice ? (
-            <div className="space-y-4 p-6">
+            <div className="space-y-4 p-4 sm:p-6">
               <Skeleton className="h-16 w-full rounded-xl" />
               <Skeleton className="h-40 w-full rounded-xl" />
               <Skeleton className="h-24 w-full rounded-xl" />
             </div>
           ) : (
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-6">
               {/* Customer block */}
               <Section label="Customer">
                 <div className="flex items-start gap-3">
@@ -252,7 +261,7 @@ export default function InvoicePreviewView({
                     {invoice.customerEmail && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1.5 truncate">
                         <Mail className="w-3 h-3 shrink-0" />
-                        {invoice.customerEmail}
+                        <span className="truncate">{invoice.customerEmail}</span>
                       </p>
                     )}
                     {invoice.customerPhone && (
@@ -264,7 +273,7 @@ export default function InvoicePreviewView({
                     {invoice.customerAddress && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1.5 truncate">
                         <MapPin className="w-3 h-3 shrink-0" />
-                        {invoice.customerAddress}
+                        <span className="truncate">{invoice.customerAddress}</span>
                       </p>
                     )}
                   </div>
@@ -280,7 +289,9 @@ export default function InvoicePreviewView({
                     <Briefcase className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{invoice.leadTitle}</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {invoice.leadTitle}
+                    </p>
                     {invoice.leadDescription && (
                       <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                         {invoice.leadDescription}
@@ -294,7 +305,7 @@ export default function InvoicePreviewView({
 
               {/* Pricing receipt */}
               <Section label="Summary">
-                <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3.5">
+                <div className="rounded-xl border border-border/70 bg-muted/20 px-3.5 sm:px-4 py-3.5">
                   <PriceRow label="Price" value={fmt(invoice.price, currency)} />
                   <PriceRow
                     label={`Discount (${invoice.discountPercent}%)`}
@@ -307,11 +318,11 @@ export default function InvoicePreviewView({
                     muted
                   />
                   <Separator className="my-3" />
-                  <div className="flex items-center justify-between rounded-lg bg-indigo-500/10 px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-3 rounded-lg bg-indigo-500/10 px-3 sm:px-3.5 py-3">
                     <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
                       Grand Total
                     </span>
-                    <span className="text-base font-bold text-indigo-700 dark:text-indigo-300 tabular-nums">
+                    <span className="text-base font-bold text-indigo-700 dark:text-indigo-300 tabular-nums whitespace-nowrap">
                       {fmt(grandTotal, currency)}
                     </span>
                   </div>
@@ -322,7 +333,9 @@ export default function InvoicePreviewView({
 
               {/* Payment terms */}
               <Section label="Payment Terms">
-                <p className="text-sm text-foreground leading-relaxed">{invoice.paymentTerms}</p>
+                <p className="text-sm text-foreground leading-relaxed">
+                  {invoice.paymentTerms}
+                </p>
               </Section>
 
               {/* Notes */}
@@ -341,7 +354,7 @@ export default function InvoicePreviewView({
         </div>
 
         {/* ── Sticky footer actions ── */}
-        <div className="shrink-0 border-t border-border px-6 py-4 bg-background space-y-2">
+        <div className="shrink-0 border-t border-border px-4 sm:px-6 py-3.5 sm:py-4 bg-background space-y-2">
           <Button
             className="w-full h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg gap-2 text-sm font-semibold"
             disabled={loading || !invoice || generatingPDF}
@@ -371,16 +384,18 @@ export default function InvoicePreviewView({
                   Delete
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="w-[calc(100%-2rem)] max-w-md rounded-lg">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete invoice?</AlertDialogTitle>
                   <AlertDialogDescription>
                     This will permanently remove{" "}
-                    <span className="font-semibold text-foreground">{invoice?.invoiceNo}</span> and
-                    cannot be undone.
+                    <span className="font-semibold text-foreground">
+                      {invoice?.invoiceNo}
+                    </span>{" "}
+                    and cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
+                <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0">
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     className="bg-destructive hover:bg-destructive/90"
