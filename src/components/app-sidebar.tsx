@@ -53,6 +53,11 @@ const navItems = [
     icon: BookUser,
   },
   {
+    title: "Invoice",
+    url: "/admin/invoice",
+    icon: BookUser,
+  },
+  {
     title: "Reports",
     url: "/admin/reports",
     icon: BarChart2,

@@ -1,0 +1,721 @@
+"use client";
+import { useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Plus,
+  Search,
+  FileText,
+  Eye,
+  Pencil,
+  Trash2,
+  Mail,
+  MoreVertical,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  Receipt,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  SearchX,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
+
+export interface InvoiceRow {
+  _id: string;
+  invoice_no: string;
+  customer_name: string;
+  customer_email?: string;
+  lead_name: string;
+  grand_total: number;
+  status: InvoiceStatus;
+  issue_date: string;
+  pdf_url: string;
+}
+
+interface InvoiceListViewProps {
+  invoices: InvoiceRow[];
+  loading: boolean;
+  search: string;
+  onSearchChange: (value: string) => void;
+  page: number;
+  totalPages: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  selectedIds: Set<string>;
+  allSelected: boolean;
+  onToggleAll: () => void;
+  onToggleOne: (id: string) => void;
+  onCreateInvoice: () => void;
+  onView: (invoice: InvoiceRow) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  onSendEmail: (invoice: InvoiceRow) => void;
+  stats: {
+    totalOutstanding: number;
+    paidThisMonth: number;
+    overdueCount: number;
+    currency?: string;
+  };
+}
+
+// ─── Status styling ───────────────────────────────────────────────────────────
+const STATUS_STYLES: Record<
+  InvoiceStatus,
+  { label: string; badge: string; dot: string; icon: React.ElementType }
+> = {
+  draft: {
+    label: "Draft",
+    badge: "bg-amber-50 text-amber-700 ring-amber-600/20",
+    dot: "bg-amber-500",
+    icon: Clock,
+  },
+  sent: {
+    label: "Sent",
+    badge: "bg-indigo-50 text-indigo-700 ring-indigo-600/20",
+    dot: "bg-indigo-500",
+    icon: FileText,
+  },
+  paid: {
+    label: "Paid",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+    dot: "bg-emerald-500",
+    icon: CheckCircle2,
+  },
+  overdue: {
+    label: "Overdue",
+    badge: "bg-rose-50 text-rose-700 ring-rose-600/20",
+    dot: "bg-rose-500",
+    icon: AlertCircle,
+  },
+};
+
+function StatusBadge({ status }: { status: InvoiceStatus }) {
+  const s = STATUS_STYLES[status];
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide whitespace-nowrap border-0 ring-1 ring-inset",
+        s.badge
+      )}
+    >
+      <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
+      {s.label}
+    </Badge>
+  );
+}
+
+const AVATAR_COLORS = [
+  { bg: "bg-blue-50", text: "text-blue-700", ring: "ring-blue-100" },
+  { bg: "bg-indigo-50", text: "text-indigo-700", ring: "ring-indigo-100" },
+  { bg: "bg-emerald-50", text: "text-emerald-700", ring: "ring-emerald-100" },
+  { bg: "bg-amber-50", text: "text-amber-700", ring: "ring-amber-100" },
+  { bg: "bg-rose-50", text: "text-rose-700", ring: "ring-rose-100" },
+  { bg: "bg-teal-50", text: "text-teal-700", ring: "ring-teal-100" },
+];
+
+function getInitials(name: string) {
+  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function fmt(amount: number, currency = "£") {
+  return `${currency}${amount.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+// ─── Stat card ────────────────────────────────────────────────────────────────
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  accent,
+  iconColor,
+  iconBg,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  accent: string;
+  iconColor: string;
+  iconBg: string;
+}) {
+  return (
+    <Card className="min-w-0 relative overflow-hidden border-slate-200/70 shadow-sm ring-1 ring-slate-900/[0.02] transition-shadow hover:shadow-md">
+      <div className={cn("absolute inset-x-0 top-0 h-1", accent)} />
+      <CardContent className="p-4 sm:p-5 flex items-center gap-3.5">
+        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", iconBg)}>
+          <Icon className={cn("w-4.5 h-4.5", iconColor)} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold leading-snug truncate">
+            {label}
+          </p>
+          <p className="text-xl font-bold text-slate-900 tracking-tight truncate mt-0.5">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Row actions (shared between desktop + mobile) ────────────────────────────
+function RowActions({
+  invoice,
+  onView,
+  onEdit,
+  onDelete,
+  onSendEmail,
+}: {
+  invoice: InvoiceRow;
+  onView: (invoice: InvoiceRow) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  onSendEmail: (invoice: InvoiceRow) => void;
+}) {
+  return (
+    <TooltipProvider delayDuration={100}>
+      <div className="flex items-center justify-end gap-0.5">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+              onClick={() => onView(invoice)}
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">Preview</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 rounded-lg text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+              onClick={() => onSendEmail(invoice)}
+            >
+              <Mail className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">Send to customer</TooltipContent>
+        </Tooltip>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+            >
+              <MoreVertical className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuItem onClick={() => onEdit(invoice._id)} className="gap-2">
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => onDelete(invoice._id)}
+              className="gap-2 text-rose-600 focus:text-rose-600 focus:bg-rose-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+// ─── Pagination ────────────────────────────────────────────────────────────────
+function getPageNumbers(page: number, totalPages: number): (number | "ellipsis")[] {
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+  const pages: (number | "ellipsis")[] = [1];
+  if (page > 3) pages.push("ellipsis");
+  for (let p = Math.max(2, page - 1); p <= Math.min(totalPages - 1, page + 1); p++) pages.push(p);
+  if (page < totalPages - 2) pages.push("ellipsis");
+  pages.push(totalPages);
+  return pages;
+}
+
+// ─── Main view ────────────────────────────────────────────────────────────────
+export default function InvoiceListView({
+  invoices,
+  loading,
+  search,
+  onSearchChange,
+  page,
+  totalPages,
+  pageSize,
+  onPageChange,
+  selectedIds,
+  allSelected,
+  onToggleAll,
+  onToggleOne,
+  onCreateInvoice,
+  onView,
+  onEdit,
+  onDelete,
+  onSendEmail,
+  stats,
+}: InvoiceListViewProps) {
+  const router = useRouter();
+  const currency = stats.currency ?? "£";
+
+  const rangeLabel = useMemo(() => {
+    if (invoices.length === 0) return "0–0";
+    const start = (page - 1) * pageSize + 1;
+    const end = Math.min(page * pageSize, invoices.length);
+    return `${start}–${end}`;
+  }, [invoices.length, page, pageSize]);
+
+  const pageNumbers = useMemo(() => getPageNumbers(page, totalPages), [page, totalPages]);
+
+  return (
+    <div className="p-3 sm:p-5 lg:p-6 space-y-4 sm:space-y-5 bg-slate-50 min-h-screen">
+      {/* Heading */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0 shadow-sm shadow-indigo-600/30">
+            <Receipt className="w-5 h-5 text-white" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Invoices</h1>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Generate, track, and manage billing for every lead.
+            </p>
+          </div>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => router.push("/admin/invoice/add")}
+          className="h-9 text-sm gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 shrink-0 shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          New Invoice
+        </Button>
+      </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 sm:gap-4">
+        <StatCard
+          icon={Receipt}
+          label="Total Outstanding"
+          value={loading ? "—" : fmt(stats.totalOutstanding, currency)}
+          accent="bg-indigo-500"
+          iconBg="bg-indigo-50"
+          iconColor="text-indigo-600"
+        />
+        <StatCard
+          icon={CheckCircle2}
+          label="Paid This Month"
+          value={loading ? "—" : fmt(stats.paidThisMonth, currency)}
+          accent="bg-emerald-500"
+          iconBg="bg-emerald-50"
+          iconColor="text-emerald-600"
+        />
+        <StatCard
+          icon={AlertCircle}
+          label="Overdue"
+          value={loading ? "—" : `${stats.overdueCount}`}
+          accent="bg-rose-500"
+          iconBg="bg-rose-50"
+          iconColor="text-rose-500"
+        />
+      </div>
+
+      {/* Toolbar */}
+      <Card className="border-slate-200/70 shadow-sm ring-1 ring-slate-900/[0.02]">
+        <CardContent className="p-3 flex items-center justify-between gap-2">
+          <div className="relative flex-1 min-w-[140px] sm:flex-none">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            <Input
+              placeholder="Search invoices…"
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="pl-8 h-9 w-full sm:w-72 text-sm rounded-lg bg-slate-50 border-slate-200 focus-visible:ring-2 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-400"
+            />
+          </div>
+          <p className="hidden sm:block text-xs text-slate-400 font-medium shrink-0">
+            {invoices.length} {invoices.length === 1 ? "invoice" : "invoices"}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      <Card className="border-slate-200/70 shadow-sm ring-1 ring-slate-900/[0.02] overflow-hidden p-0">
+        <div className="hidden md:block overflow-x-auto">
+          <Table>
+            <TableHeader className="sticky top-0 z-10">
+              <TableRow className="bg-slate-50/95 backdrop-blur border-b border-slate-200 hover:bg-slate-50/95">
+                <TableHead className="w-10 pl-4">
+                  <Checkbox checked={allSelected} onCheckedChange={onToggleAll} className="rounded" />
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-3">
+                  Invoice
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Customer
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Lead
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Date
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Status
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 text-right">
+                  Amount
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  PDF
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 text-right pr-5">
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody className="divide-y divide-slate-100">
+              {loading &&
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="pl-4">
+                      <Skeleton className="h-4 w-4 rounded" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-3.5 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-9 w-9 rounded-full" />
+                        <Skeleton className="h-3.5 w-28" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-3.5 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-3.5 w-20" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="h-3.5 w-16 ml-auto" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-3.5 w-16" />
+                    </TableCell>
+                    <TableCell className="pr-5">
+                      <Skeleton className="h-6 w-24 ml-auto" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+
+              {!loading && invoices.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                      {search ? (
+                        <>
+                          <SearchX className="h-10 w-10 opacity-20" />
+                          <p className="text-sm font-semibold text-slate-700">No results found</p>
+                          <p className="text-xs">Nothing matches "{search}" — try a different term</p>
+                        </>
+                      ) : (
+                        <>
+                          <Receipt className="h-10 w-10 opacity-20" />
+                          <p className="text-sm font-semibold text-slate-700">No invoices yet</p>
+                          <p className="text-xs">Create your first invoice to get started</p>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {!loading &&
+                invoices.map((inv, i) => {
+                  const isSelected = selectedIds.has(inv._id);
+                  const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+                  return (
+                    <TableRow
+                      key={inv._id}
+                      onClick={() => onView(inv)}
+                      className={cn(
+                        "group transition-colors cursor-pointer border-l-2 border-l-transparent",
+                        isSelected
+                          ? "bg-indigo-500/5"
+                          : inv.status === "overdue"
+                          ? "border-l-rose-400 hover:bg-slate-50"
+                          : "hover:bg-slate-50"
+                      )}
+                    >
+                      <TableCell className="pl-4" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => onToggleOne(inv._id)}
+                          className="rounded"
+                        />
+                      </TableCell>
+
+                      <TableCell className="py-3.5">
+                        <span className="text-sm font-semibold text-slate-900 whitespace-nowrap">
+                          {inv.invoice_no}
+                        </span>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className={cn("h-8 w-8 shrink-0 ring-2", color.ring)}>
+                            <AvatarFallback className={cn(color.bg, color.text, "text-[11px] font-bold")}>
+                              {getInitials(inv.customer_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-900 leading-tight truncate">
+                              {inv.customer_name}
+                            </p>
+                            {inv.customer_email && (
+                              <p className="text-xs text-slate-500 truncate">{inv.customer_email}</p>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <span className="text-sm text-slate-500 truncate max-w-[160px] block">
+                          {inv.lead_name}
+                        </span>
+                      </TableCell>
+
+                      <TableCell>
+                        <span className="text-sm text-slate-500 whitespace-nowrap">{inv.issue_date}</span>
+                      </TableCell>
+
+                      <TableCell>
+                        <StatusBadge status={inv.status} />
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <span className="text-sm font-semibold text-slate-900 whitespace-nowrap">
+                          {fmt(inv.grand_total, currency)}
+                        </span>
+                      </TableCell>
+
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <a
+                          href={inv.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full px-2.5 py-1 transition-colors"
+                        >
+                          <FileText className="h-3 w-3" />
+                          View
+                          <ExternalLink className="h-2.5 w-2.5" />
+                        </a>
+                      </TableCell>
+
+                      <TableCell className="pr-5" onClick={(e) => e.stopPropagation()}>
+                        <div className="opacity-60 group-hover:opacity-100 transition-opacity">
+                          <RowActions
+                            invoice={inv}
+                            onView={onView}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                            onSendEmail={onSendEmail}
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile stacked rows */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {loading &&
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="p-3 flex items-center gap-3">
+                <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                <div className="space-y-1.5 flex-1">
+                  <Skeleton className="h-3.5 w-28" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+            ))}
+
+          {!loading && invoices.length === 0 && (
+            <div className="flex flex-col items-center gap-2 text-slate-400 py-12">
+              {search ? (
+                <>
+                  <SearchX className="h-10 w-10 opacity-20" />
+                  <p className="text-sm font-semibold text-slate-700">No results found</p>
+                </>
+              ) : (
+                <>
+                  <Receipt className="h-10 w-10 opacity-20" />
+                  <p className="text-sm font-semibold text-slate-700">No invoices yet</p>
+                </>
+              )}
+            </div>
+          )}
+
+          {!loading &&
+            invoices.map((inv, i) => {
+              const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+              return (
+                <div
+                  key={inv._id}
+                  className={cn(
+                    "p-3 active:bg-slate-50 border-l-2",
+                    inv.status === "overdue" ? "border-l-rose-400" : "border-l-transparent"
+                  )}
+                >
+                  <div onClick={() => onView(inv)} className="cursor-pointer">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar className={cn("h-9 w-9 shrink-0 ring-2", color.ring)}>
+                          <AvatarFallback className={cn(color.bg, color.text, "text-xs font-bold")}>
+                            {getInitials(inv.customer_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 truncate">{inv.customer_name}</p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {inv.invoice_no} · {inv.issue_date}
+                          </p>
+                        </div>
+                      </div>
+                      <StatusBadge status={inv.status} />
+                    </div>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-xs text-slate-500 truncate">{inv.lead_name}</span>
+                      <span className="text-sm font-semibold text-slate-900">
+                        {fmt(inv.grand_total, currency)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                    <a
+                      href={inv.pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full px-2.5 py-1"
+                    >
+                      <FileText className="h-3 w-3" />
+                      View PDF
+                    </a>
+                    <RowActions
+                      invoice={inv}
+                      onView={onView}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      onSendEmail={onSendEmail}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+
+        {/* Pagination */}
+        <div className="border-t border-slate-200 px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-50/40">
+          <p className="text-xs sm:text-sm text-slate-500">
+            Showing <span className="font-semibold text-slate-900">{rangeLabel}</span> of{" "}
+            <span className="font-semibold text-slate-900">{invoices.length}</span> invoices
+          </p>
+          <div className="flex items-center gap-1 self-end sm:self-auto">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => onPageChange(Math.max(1, page - 1))}
+              disabled={page === 1}
+              className="w-8 h-8 rounded-lg border-slate-200"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+
+            {pageNumbers.map((p, idx) =>
+              p === "ellipsis" ? (
+                <span key={`e-${idx}`} className="w-8 h-8 flex items-center justify-center text-xs text-slate-400">
+                  …
+                </span>
+              ) : (
+                <Button
+                  key={p}
+                  size="icon"
+                  variant={p === page ? "default" : "outline"}
+                  onClick={() => onPageChange(p)}
+                  className={cn(
+                    "w-8 h-8 rounded-lg text-xs font-semibold",
+                    p === page
+                      ? "bg-indigo-600 hover:bg-indigo-500 text-white border-0"
+                      : "border-slate-200 text-slate-600"
+                  )}
+                >
+                  {p}
+                </Button>
+              )
+            )}
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+              disabled={page === totalPages}
+              className="w-8 h-8 rounded-lg border-slate-200"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
