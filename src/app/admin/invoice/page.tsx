@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import InvoicePreviewView, {
   InvoiceDetail,
 } from "@/components/invoicepreview";
-
+import PdfSuccessDialog from "@/components/pdfSuccess";
 import InvoiceEmailDialog, {
   InvoiceEmailDialogState,
 } from "@/components/invoiceemaildialogue";
@@ -42,6 +42,12 @@ export default function InvoicePage() {
   const router = useRouter();
   const [aiEmail, setAiEmail] = useState<InvoiceEmailDialogState>(DEFAULT_EMAIL_STATE);
   const setEmail = setAiEmail;
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+const [pdfSuccess, setPdfSuccess] = useState<{
+  open: boolean;
+  invoiceNo?: string;
+  pdfUrl?: string;
+}>({ open: false });
 
 
 const [previewOpen, setPreviewOpen] = useState(false);
@@ -98,18 +104,22 @@ const handleedit=(id:string)=>{
 
 
 const generate_pdf = async (invoice: InvoiceDetail) => {
+   setGeneratingPDF(true);
   try {
     const res = await axios.get(
       `${baseurl}/invoice/pdf/${invoice._id}`
     );
-
-    alert("PDF Generated Successfully");
-
-    // Refresh invoice details so pdf_url is updated
     handleView(invoice);
+    setPdfSuccess({
+      open: true,
+      invoiceNo: invoice.invoiceNo,
+      pdfUrl: res.data?.pdf_url ?? invoice.pdf_url,
+    });
 
   } catch (err) {
     console.log(err);
+  }finally{
+    setGeneratingPDF(false);
   }
 };
 
@@ -298,6 +308,7 @@ useEffect(()=>{
       invoice={selectedInvoice}
       loading={false}
       onEdit={handleedit}
+      generatingPDF={generatingPDF} 
       onDelete={handledelete}
       onGeneratePDF={(id) => {
         if (selectedInvoice) generate_pdf(selectedInvoice);
@@ -312,6 +323,13 @@ useEffect(()=>{
       onSubjectChange={handleEmailSubjectChange}
       onBodyChange={handleEmailBodyChange}
     />
+
+    <PdfSuccessDialog
+  open={pdfSuccess.open}
+  onOpenChange={(open) => setPdfSuccess((prev) => ({ ...prev, open }))}
+  invoiceNo={pdfSuccess.invoiceNo}
+  pdfUrl={pdfSuccess.pdfUrl}
+/>
   </>
 );
 }

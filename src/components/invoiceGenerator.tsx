@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import PdfSuccessDialog from "@/components/pdfSuccess";
 import {
   Select,
   SelectContent,
@@ -152,6 +153,12 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
   const [fetching, setFetching] = useState(isEdit);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [pdfSuccess, setPdfSuccess] = useState<{
+    open: boolean;
+    invoiceNo?: string;
+    pdfUrl?: string;
+  }>({ open: false });
 
   const [invoice, setInvoice] = useState({
     customer_name: "",
@@ -189,19 +196,26 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
     }
 
     try {
+      setGeneratingPDF(true);
       const res = await axios.get(
         `${baseurl}/invoice/pdf/${generatedInvoice._id}`,
       );
-
-      alert("PDF Generated Successfully");
 
       // Update local state with the returned URL
       setGeneratedInvoice((prev: any) => ({
         ...prev,
         pdf_url: res.data.pdf_url,
       }));
+
+      setPdfSuccess({
+        open: true,
+        invoiceNo: generatedInvoice.invoice_no,
+        pdfUrl: res.data.pdf_url,
+      });
     } catch (err) {
       console.error(err);
+    } finally {
+      setGeneratingPDF(false);
     }
   };
 
@@ -320,7 +334,6 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
 
         console.log(create.data);
 
-
         invoiceId = create.data.invoice_id;
 
         // Follow-up PATCH to attach the account/status fields the create endpoint can't accept.
@@ -333,13 +346,13 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
 
       setStep("preview");
     } catch (err: any) {
-  console.log(err);
+      console.log(err);
 
-  if (axios.isAxiosError(err)) {
-    console.log(err.response?.data);
-    console.log(err.response?.status);
-  }
-} finally {
+      if (axios.isAxiosError(err)) {
+        console.log(err.response?.data);
+        console.log(err.response?.status);
+      }
+    } finally {
       setGenerating(false);
     }
   };
@@ -347,8 +360,7 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
   const handleSaveDraft = async () => {
     try {
       setSaving(true);
-      // TODO: wire to your save-draft endpoint — e.g.:
-      // await axios.put(`${baseurl}/update-invoice/${generatedInvoice._id}`, { status: "draft" });
+
       router.push("/admin/invoice");
     } catch (err) {
       console.error(err);
@@ -359,16 +371,13 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
 
   // Backend already computes and returns everything below — no client-side math needed.
   const price = Number(generatedInvoice?.price ?? invoice.price ?? 0);
-  const discount = Number(
-    generatedInvoice?.discount ?? invoice.discount ?? 0,
-  );
+  const discount = Number(generatedInvoice?.discount ?? invoice.discount ?? 0);
   const taxPercentage = Number(generatedInvoice?.tax_percentage ?? 0);
   const taxAmount = Number(generatedInvoice?.tax_amount ?? 0);
   const total = Number(generatedInvoice?.grand_total ?? 0);
   const discountAmount = (price * discount) / 100;
 
-  const customerName =
-    generatedInvoice?.customer_name ?? invoice.customer_name;
+  const customerName = generatedInvoice?.customer_name ?? invoice.customer_name;
   const leadName = generatedInvoice?.lead_name ?? invoice.lead_name;
   const accountNumber =
     generatedInvoice?.Accountnumber ?? invoice.Accountnumber;
@@ -607,8 +616,8 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                   )}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center mt-2.5">
-                  AI pulls customer &amp; lead details automatically —
-                  nothing is sent until you approve it.
+                  AI pulls customer &amp; lead details automatically — nothing
+                  is sent until you approve it.
                 </p>
               </div>
             </CardContent>
@@ -780,14 +789,30 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
               <Button
                 className="flex-1 h-10 gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg"
                 onClick={handleGeneratePDF}
+                disabled={generatingPDF}
               >
-                <Download className="w-4 h-4" />
-                Generate PDF
+                {generatingPDF ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                {generatingPDF ? "Generating…" : "Generate PDF"}
               </Button>
             </div>
           </div>
         )}
       </div>
+      <PdfSuccessDialog
+        open={pdfSuccess.open}
+        onOpenChange={(open) => {
+          setPdfSuccess((prev) => ({ ...prev, open }));
+          if (!open) {
+            router.push("/admin/invoice");
+          }
+        }}
+        invoiceNo={pdfSuccess.invoiceNo}
+        pdfUrl={pdfSuccess.pdfUrl}
+      />
     </div>
   );
 }
