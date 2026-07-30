@@ -49,6 +49,11 @@ const [selectedInvoice, setSelectedInvoice] = useState<InvoiceDetail | null>(nul
 const [previewLoading, setPreviewLoading] = useState(false);
 const [generatepdf, setgeneratepdf] = useState(false);
 const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
+const [countstats, setcountstats] = useState({
+  totalInvoices: 0,
+  paidThisMonth: 0,
+  overdueInvoices: 0,
+});
                  
 
   useEffect(() => {
@@ -245,11 +250,30 @@ const handledelete= async(id:string) =>{
   }
 }
 
+const countstat = async() =>{
+  try{
+    const response = await axios.get(`${baseurl}/count-totalinvoice-overdue-paidthismonth/${userid}`)
+    setcountstats(response.data.data);
+    console.log(response.data);
+
+  }catch(err){
+    console.error(err);
+  }
+}
+
+useEffect(()=>{
+  if(!userid){
+    return;
+  }
+  countstat();
+},[userid])
+
   return (
   <>
     <InvoiceListView
       invoices={invoices}
       loading={false}
+      stats= {countstats}
       search={search}
       onSearchChange={setSearch}
       page={1}
@@ -265,12 +289,7 @@ const handledelete= async(id:string) =>{
       onView={handleView}
       onEdit={handleedit}
       onDelete={handledelete}
-      stats={{
-        totalOutstanding: 0,
-        paidThisMonth: 0,
-        overdueCount: 0,
-        currency: "£",
-      }}
+     
     />
 
     <InvoicePreviewView

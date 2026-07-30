@@ -66,6 +66,8 @@ export interface InvoiceRow {
   pdf_url: string;
 }
 
+
+
 interface InvoiceListViewProps {
   invoices: InvoiceRow[];
   loading: boolean;
@@ -85,12 +87,13 @@ interface InvoiceListViewProps {
   onDelete: (id: string) => void;
   onSendEmail: (invoice: InvoiceRow) => void;
   stats: {
-    totalOutstanding: number;
+    totalInvoices: number;
     paidThisMonth: number;
-    overdueCount: number;
-    currency?: string;
+    overdueInvoices: number;
   };
+ 
 }
+
 
 // ─── Status styling ───────────────────────────────────────────────────────────
 const STATUS_STYLES: Record<
@@ -299,9 +302,11 @@ export default function InvoiceListView({
   onDelete,
   onSendEmail,
   stats,
+ 
+
 }: InvoiceListViewProps) {
   const router = useRouter();
-  const currency = stats.currency ?? "£";
+
 
   const rangeLabel = useMemo(() => {
     if (invoices.length === 0) return "0–0";
@@ -342,7 +347,7 @@ export default function InvoiceListView({
         <StatCard
           icon={Receipt}
           label="Total Outstanding"
-          value={loading ? "—" : fmt(stats.totalOutstanding, currency)}
+          value={loading ? "—" : fmt(stats.totalInvoices)}
           accent="bg-indigo-500"
           iconBg="bg-indigo-50"
           iconColor="text-indigo-600"
@@ -350,7 +355,7 @@ export default function InvoiceListView({
         <StatCard
           icon={CheckCircle2}
           label="Paid This Month"
-          value={loading ? "—" : fmt(stats.paidThisMonth, currency)}
+          value={loading ? "—" : fmt(stats.paidThisMonth)}
           accent="bg-emerald-500"
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
@@ -358,7 +363,7 @@ export default function InvoiceListView({
         <StatCard
           icon={AlertCircle}
           label="Overdue"
-          value={loading ? "—" : `${stats.overdueCount}`}
+          value={loading ? "—" : `${stats.overdueInvoices}`}
           accent="bg-rose-500"
           iconBg="bg-rose-50"
           iconColor="text-rose-500"
@@ -543,7 +548,7 @@ export default function InvoiceListView({
 
                       <TableCell className="text-right">
                         <span className="text-sm font-semibold text-slate-900 whitespace-nowrap">
-                          {fmt(inv.grand_total, currency)}
+                          {fmt(inv.grand_total)}
                         </span>
                       </TableCell>
 
@@ -654,7 +659,7 @@ export default function InvoiceListView({
                       <div className="flex items-center justify-between gap-2 mt-3">
                         <span className="text-xs text-slate-500 truncate">{inv.lead_name}</span>
                         <span className="text-sm font-semibold text-slate-900 shrink-0">
-                          {fmt(inv.grand_total, currency)}
+                          {fmt(inv.grand_total)}
                         </span>
                       </div>
                     </div>
