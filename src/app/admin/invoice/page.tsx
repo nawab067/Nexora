@@ -131,6 +131,8 @@ const handleView = async (invoice: any) => {
   paymentTerms: data.payment_terms,
   notes: data.notes,
   pdf_url: data.pdf_url,
+  account_name: data.AccountName,
+  account_number: data.Accountnumber,
 });
     setPreviewOpen(true);
   } catch (err) {
