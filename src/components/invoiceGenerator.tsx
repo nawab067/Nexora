@@ -25,6 +25,8 @@ import {
   MapPin,
   Briefcase,
   Loader2,
+  Landmark,
+  Hash,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
@@ -45,6 +47,53 @@ function money(n: number) {
     maximumFractionDigits: 0,
   });
 }
+
+// ── Pakistan banks + mobile wallets, for the "Account name" dropdown ──
+const PK_ACCOUNTS = [
+  "HBL - Habib Bank Limited",
+  "UBL - United Bank Limited",
+  "MCB Bank",
+  "Allied Bank",
+  "Bank Alfalah",
+  "Meezan Bank",
+  "National Bank of Pakistan",
+  "Askari Bank",
+  "Bank Al Habib",
+  "Faysal Bank",
+  "Standard Chartered Pakistan",
+  "JS Bank",
+  "Soneri Bank",
+  "The Bank of Punjab",
+  "Bank of Khyber",
+  "Silk Bank",
+  "Summit Bank",
+  "Habib Metropolitan Bank",
+  "Dubai Islamic Bank Pakistan",
+  "Al Baraka Bank Pakistan",
+  "First Women Bank",
+  "JazzCash",
+  "Easypaisa",
+  "NayaPay",
+  "SadaPay",
+  "UPaisa",
+];
+
+// ── Status options for the invoice lifecycle ──
+const STATUS_OPTIONS = [
+  { value: "draft", label: "Draft" },
+  { value: "sent", label: "Sent" },
+  { value: "pending", label: "Pending" },
+  { value: "paid", label: "Paid" },
+] as const;
+
+const STATUS_STYLES: Record<string, string> = {
+  draft:
+    "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
+  sent: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+  pending:
+    "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  paid: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+};
 
 function Stepper({ step }: { step: "form" | "preview" }) {
   const steps = [
@@ -109,6 +158,9 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
     lead_name: "",
     price: "",
     discount: "",
+    Accountnumber: "",
+    AccountName: "",
+    status: "draft",
   });
 
   const [generatedInvoice, setGeneratedInvoice] = useState<any | null>(null);
@@ -166,6 +218,9 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
         lead_name: invoiceData.lead_name,
         price: String(invoiceData.price),
         discount: String(invoiceData.discount),
+        AccountName: invoiceData.AccountName ?? "",
+        Accountnumber: invoiceData.Accountnumber ?? "",
+        status: invoiceData.status ?? "draft",
       });
     } catch (err) {
       console.error(err);
@@ -219,6 +274,12 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
   }, [userid]);
 
   // ── Generate (create) or Update (edit) ──
+  // NOTE on schema: /get-ai-invoice only accepts AIInvoiceRequest
+  // (userid, customer_name, lead_name, price, discount) — it has no
+  // AccountName / Accountnumber / status fields. Sending them there
+  // gets ignored/rejected, so on create we (1) create with the base
+  // fields only, then (2) immediately PATCH the new invoice with the
+  // account + status fields, which the full InvoiceModel does support.
   const handleGenerate = async () => {
     try {
       setGenerating(true);
@@ -227,33 +288,58 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const body = {
-        userid: me.data.id,
-        customer_name: invoice.customer_name,
-        lead_name: invoice.lead_name,
-        price: Number(invoice.price),
-        discount: Number(invoice.discount || 0),
+      const extras = {
+        AccountName: invoice.AccountName,
+        Accountnumber: invoice.Accountnumber,
+        status: invoice.status,
       };
+
+      let invoiceId = id;
       let res;
 
       if (isEdit) {
-        await axios.patch(`${baseurl}/update-invoice/${id}`, body);
-
-        res = await axios.get(`${baseurl}/get-invoice/${id}`);
+        // Update endpoint accepts the full InvoiceModel shape, so send everything together.
+        await axios.patch(`${baseurl}/update-invoice/${id}`, {
+          customer_name: invoice.customer_name,
+          lead_name: invoice.lead_name,
+          price: Number(invoice.price),
+          discount: Number(invoice.discount || 0),
+          ...extras,
+        });
       } else {
-        const create = await axios.post(`${baseurl}/get-ai-invoice`, body);
+        const create = await axios.post(`${baseurl}/get-ai-invoice`, {
+          userid: me.data.id,
+          customer_name: invoice.customer_name,
+          lead_name: invoice.lead_name,
+          price: Number(invoice.price),
+          discount: Number(invoice.discount || 0),
+          status: invoice.status,
+          AccountName: invoice.AccountName,
+          Accountnumber: invoice.Accountnumber,
+        });
 
-        res = await axios.get(
-          `${baseurl}/get-invoice/${create.data.invoice_id}`,
-        );
+        console.log(create.data);
+
+
+        invoiceId = create.data.invoice_id;
+
+        // Follow-up PATCH to attach the account/status fields the create endpoint can't accept.
+        await axios.patch(`${baseurl}/update-invoice/${invoiceId}`, extras);
       }
+
+      res = await axios.get(`${baseurl}/get-invoice/${invoiceId}`);
 
       setGeneratedInvoice(res.data.invoice);
 
       setStep("preview");
-    } catch (err) {
-      console.error(err);
-    } finally {
+    } catch (err: any) {
+  console.log(err);
+
+  if (axios.isAxiosError(err)) {
+    console.log(err.response?.data);
+    console.log(err.response?.status);
+  }
+} finally {
       setGenerating(false);
     }
   };
@@ -284,6 +370,12 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
   const customerName =
     generatedInvoice?.customer_name ?? invoice.customer_name;
   const leadName = generatedInvoice?.lead_name ?? invoice.lead_name;
+  const accountNumber =
+    generatedInvoice?.Accountnumber ?? invoice.Accountnumber;
+  const accountName = generatedInvoice?.AccountName ?? invoice.AccountName;
+  const status = generatedInvoice?.status ?? invoice.status ?? "draft";
+  const statusLabel =
+    STATUS_OPTIONS.find((s) => s.value === status)?.label ?? status;
 
   if (fetching) {
     return (
@@ -413,6 +505,89 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
 
               <Separator />
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground">
+                    Account Name <span className="text-rose-600">*</span>
+                  </Label>
+                  <Select
+                    value={invoice.AccountName}
+                    onValueChange={(value) =>
+                      setInvoice((prev) => ({ ...prev, AccountName: value }))
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <Landmark className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <SelectValue placeholder="Select bank / wallet" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {PK_ACCOUNTS.map((bank) => (
+                        <SelectItem key={bank} value={bank}>
+                          {bank}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground">
+                    Account Number
+                  </Label>
+                  <div className="relative">
+                    <Hash className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Input
+                      inputMode="numeric"
+                      placeholder="e.g. 03001234567"
+                      className="pl-8"
+                      value={invoice.Accountnumber}
+                      onChange={(e) =>
+                        setInvoice((prev) => ({
+                          ...prev,
+                          Accountnumber: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">
+                  Status
+                </Label>
+                <Select
+                  value={invoice.status}
+                  onValueChange={(value) =>
+                    setInvoice((prev) => ({ ...prev, status: value }))
+                  }
+                >
+                  <SelectTrigger className="w-full sm:w-1/2">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "h-1.5 w-1.5 rounded-full",
+                              s.value === "draft" && "bg-slate-400",
+                              s.value === "sent" && "bg-indigo-500",
+                              s.value === "pending" && "bg-amber-500",
+                              s.value === "paid" && "bg-emerald-500",
+                            )}
+                          />
+                          {s.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
               <div>
                 <Button
                   onClick={handleGenerate}
@@ -461,9 +636,12 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                   </div>
                   <Badge
                     variant="outline"
-                    className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 capitalize shrink-0"
+                    className={cn(
+                      "capitalize shrink-0",
+                      STATUS_STYLES[status] ?? STATUS_STYLES.draft,
+                    )}
                   >
-                    {generatedInvoice?.status ?? "draft"}
+                    {statusLabel}
                   </Badge>
                 </div>
 
@@ -513,6 +691,35 @@ export default function InvoiceGeneratorView({ id }: { id?: string }) {
                 )}
 
                 <Separator />
+
+                {(accountName || accountNumber) && (
+                  <>
+                    <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2">
+                      <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                        Payment account
+                      </p>
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="flex items-center gap-1.5 text-muted-foreground">
+                          <Landmark className="w-3.5 h-3.5 shrink-0" />
+                          Account name
+                        </span>
+                        <span className="text-foreground font-medium text-right truncate">
+                          {accountName || "—"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="flex items-center gap-1.5 text-muted-foreground">
+                          <Hash className="w-3.5 h-3.5 shrink-0" />
+                          Account number
+                        </span>
+                        <span className="text-foreground font-medium text-right truncate">
+                          {accountNumber || "—"}
+                        </span>
+                      </div>
+                    </div>
+                    <Separator />
+                  </>
+                )}
 
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between gap-3">

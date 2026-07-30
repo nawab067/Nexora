@@ -34,6 +34,8 @@ import {
   FileText,
   CheckCircle2,
   AlertCircle,
+  Landmark,
+  Hash,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { InvoiceStatus } from "@/components/invoiceview";
@@ -49,6 +51,10 @@ export interface InvoiceDetail {
   customerEmail?: string;
   customerPhone?: string;
   customerAddress?: string;
+  
+  account_name: string;
+  account_number: string;
+
 
   leadTitle: string;
   leadDescription?: string;
@@ -157,6 +163,29 @@ function PriceRow({
         )}
       >
         {value}
+      </span>
+    </div>
+  );
+}
+
+// ─── Row inside the payment account card ─────────────────────────────────────
+function AccountRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+        <Icon className="w-3.5 h-3.5 shrink-0" />
+        {label}
+      </span>
+      <span className="text-sm font-medium text-foreground text-right truncate">
+        {value || "—"}
       </span>
     </div>
   );
@@ -300,6 +329,27 @@ export default function InvoicePreviewView({
                   </div>
                 </div>
               </Section>
+
+              {(invoice.account_name || invoice.account_number) && (
+                <>
+                  <Separator />
+                  {/* Payment account block */}
+                  <Section label="Payment Account">
+                    <div className="rounded-xl border border-border/70 bg-muted/20 px-3.5 sm:px-4 py-1">
+                      <AccountRow
+                        icon={Landmark}
+                        label="Account name"
+                        value={invoice.account_name}
+                      />
+                      <AccountRow
+                        icon={Hash}
+                        label="Account number"
+                        value={invoice.account_number}
+                      />
+                    </div>
+                  </Section>
+                </>
+              )}
 
               <Separator />
 

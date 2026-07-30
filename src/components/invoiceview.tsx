@@ -57,6 +57,8 @@ export interface InvoiceRow {
   invoice_no: string;
   customer_name: string;
   customer_email?: string;
+  account_name: string;
+  account_number: string;
   lead_name: string;
   grand_total: number;
   status: InvoiceStatus;
