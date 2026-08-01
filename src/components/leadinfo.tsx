@@ -75,6 +75,7 @@ import {
     BadgeCheck,
     XCircle,
     Trophy,
+    FileText,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Bell, HelpCircle, Settings } from "lucide-react";
@@ -90,12 +91,12 @@ interface CustomerWithImage {
     customerid?: string;
     customername?: string;
     leadsource?: string;
+    LeadDiscription: string;
     status?: string;
 }
 
 import { cn } from "@/lib/utils";
 
-// ─── Props ────────────────────────────────────────────────────────────────────
 interface CustomerInfoViewProps {
     customerData: CustomerWithImage[];
     loading: boolean;
@@ -106,23 +107,19 @@ interface CustomerInfoViewProps {
     onSearchChange: (value: string) => void;
     activeTab: "all" | "my" | "team";
     onTabChange: (tab: "all" | "my" | "team") => void;
-
     page: number;
     totalPages: number;
     pageSize: number;
     onPageChange: (page: number) => void;
-
     selectedIds: Set<string>;
     allSelected: boolean;
     onToggleAll: () => void;
     onToggleOne: (id: string) => void;
-
     onAddCustomer: () => void;
     onDelete: (id: string) => void;
     onEdit: (id: string) => void;
     onAIEmail: (customer: CustomerWithImage) => void;
 
-    // ── AI Email Dialog ──
     aiEmail: AIEmailDialogState;
     onCloseEmailDialog: () => void;
     onSendEmail: () => void;
@@ -131,7 +128,6 @@ interface CustomerInfoViewProps {
     conversion: number;
     totalcount: number;
     totalWinrate: number;
-    
 }
 
 // ─── Avatar colors ────────────────────────────────────────────────────────────
@@ -234,6 +230,51 @@ function StatCard({
     );
 }
 
+// ─── Lead description cell (2-line clamp, shared by table + grid) ────────────
+function LeadDescriptionPreview({
+    text,
+    className,
+    lines = 2,
+}: {
+    text?: string;
+    className?: string;
+    lines?: 2 | 3;
+}) {
+    if (!text) {
+        return <span className="text-sm text-muted-foreground">—</span>;
+    }
+
+    const clampClass = lines === 3 ? "line-clamp-3" : "line-clamp-2";
+
+    return (
+        <TooltipProvider delayDuration={200}>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div
+                        className={cn(
+                            "flex items-start gap-2 rounded-lg border border-border/60 bg-muted/50 px-3 py-2 cursor-default",
+                            className
+                        )}
+                    >
+                        <FileText className="w-3.5 h-3.5 text-muted-foreground/70 mt-0.5 shrink-0" />
+                        <p
+                            className={cn(
+                                "text-xs text-muted-foreground leading-relaxed break-words whitespace-normal",
+                                clampClass
+                            )}
+                        >
+                            {text}
+                        </p>
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-sm leading-relaxed whitespace-normal">
+                    {text}
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+}
+
 // ─── Grid card (used when view mode = grid) ───────────────────────────────────
 function LeadCard({
     customer,
@@ -271,9 +312,13 @@ function LeadCard({
                         {contactName}
                     </span>
                 </div>
-                <p className="text-xs text-muted-foreground truncate mb-3">
+                <p className="text-xs text-muted-foreground truncate mb-2">
                     {customer.leadsource || "—"}
                 </p>
+
+                {/* Lead Description */}
+                <LeadDescriptionPreview text={customer.LeadDiscription} className="mb-3" />
+
                 <Separator className="mb-2" />
                 <div className="flex items-center justify-end gap-1">
                     <TooltipProvider delayDuration={100}>
@@ -543,8 +588,6 @@ export default function CustomerInfoView({
     conversion,
     totalcount,
     totalWinrate,
-   
-
 }: CustomerInfoViewProps): import("react").JSX.Element {
     const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
     const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
@@ -608,6 +651,7 @@ export default function CustomerInfoView({
                 ? customerNames[customer.customerid] || ""
                 : "",
             LeadSource: customer.leadsource,
+            LeadDiscription: customer.LeadDiscription,
         }));
         const csv = Papa.unparse(csvData);
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -695,8 +739,6 @@ export default function CustomerInfoView({
                         </Button>
                     </div>
                 </div>
-  
-  
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
                     <StatCard
@@ -820,7 +862,7 @@ export default function CustomerInfoView({
                 <Card className="border-border/70 shadow-sm overflow-hidden p-0">
                     {viewMode === "table" ? (
                         <div className="overflow-x-auto">
-                        <Table className="min-w-[720px]">
+                        <Table className="min-w-[980px]">
                             <TableHeader>
                                 <TableRow className="bg-muted/50 border-b border-border hover:bg-muted/50">
                                     <TableHead className="w-10 pl-4">
@@ -830,19 +872,22 @@ export default function CustomerInfoView({
                                             className="rounded"
                                         />
                                     </TableHead>
-                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">
+                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 w-[220px]">
                                         Lead Name
                                     </TableHead>
-                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[120px]">
                                         Status
                                     </TableHead>
-                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[140px]">
                                         Contact
                                     </TableHead>
-                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">
+                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell w-[120px]">
                                         Lead Source
                                     </TableHead>
-                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right pr-5">
+                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell min-w-[260px]">
+                                        Lead Discription
+                                    </TableHead>
+                                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right pr-5 w-[130px]">
                                         Actions
                                     </TableHead>
                                 </TableRow>
@@ -871,7 +916,10 @@ export default function CustomerInfoView({
                                                 <Skeleton className="h-3.5 w-16" />
                                             </TableCell>
                                             <TableCell className="hidden md:table-cell">
-                                                <Skeleton className="h-3.5 w-24" />
+                                                <Skeleton className="h-3.5 w-16" />
+                                            </TableCell>
+                                            <TableCell className="hidden md:table-cell">
+                                                <Skeleton className="h-9 w-full max-w-xs" />
                                             </TableCell>
                                             <TableCell className="pr-5">
                                                 <Skeleton className="h-6 w-20 ml-auto" />
@@ -881,7 +929,7 @@ export default function CustomerInfoView({
 
                                 {!loading && displayRows.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="py-16 text-center">
+                                        <TableCell colSpan={7} className="py-16 text-center">
                                             <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                                 <Users className="h-10 w-10 opacity-20" />
                                                 <p className="text-sm font-semibold text-foreground">
@@ -903,11 +951,11 @@ export default function CustomerInfoView({
                                             <TableRow
                                                 key={customer._id}
                                                 className={cn(
-                                                    "group border-b border-border transition-colors last:border-0",
+                                                    "group border-b border-border transition-colors last:border-0 align-top",
                                                     isSelected ? "bg-indigo-500/5" : "hover:bg-muted/40"
                                                 )}
                                             >
-                                                <TableCell className="pl-4">
+                                                <TableCell className="pl-4 py-3">
                                                     <Checkbox
                                                         checked={isSelected}
                                                         onCheckedChange={() => onToggleOne(customer._id)}
@@ -922,13 +970,13 @@ export default function CustomerInfoView({
                                                             index={globalIndex}
                                                             imageUrl={customer.image_url}
                                                         />
-                                                        <div>
-                                                            <p className="text-sm font-semibold text-foreground leading-tight">
+                                                        <div className="min-w-0">
+                                                            <p className="text-sm font-semibold text-foreground leading-tight truncate">
                                                                 {customer.name}
                                                             </p>
                                                             <a
                                                                 href={`mailto:${customer.email}`}
-                                                                className="text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                                                                className="text-xs text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate block"
                                                             >
                                                                 {customer.email}
                                                             </a>
@@ -936,11 +984,11 @@ export default function CustomerInfoView({
                                                     </div>
                                                 </TableCell>
 
-                                                <TableCell>
+                                                <TableCell className="py-3">
                                                     <StatusBadge status={customer.status || ""} />
                                                 </TableCell>
 
-                                                <TableCell>
+                                                <TableCell className="py-3">
                                                     <span className="text-sm font-semibold text-foreground">
                                                         {customer.customerid
                                                             ? customerNames[customer.customerid] || "Loading..."
@@ -948,13 +996,17 @@ export default function CustomerInfoView({
                                                     </span>
                                                 </TableCell>
 
-                                                <TableCell className="hidden md:table-cell">
+                                                <TableCell className="hidden md:table-cell py-3">
                                                     <span className="text-sm text-muted-foreground">
                                                         {customer.leadsource || "—"}
                                                     </span>
                                                 </TableCell>
 
-                                                <TableCell className="pr-5">
+                                                <TableCell className="hidden md:table-cell py-3 max-w-[320px]">
+                                                    <LeadDescriptionPreview text={customer.LeadDiscription} />
+                                                </TableCell>
+
+                                                <TableCell className="pr-5 py-3">
                                                     <TooltipProvider delayDuration={100}>
                                                         <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                                                             <Tooltip>
