@@ -91,7 +91,7 @@ interface CustomerWithImage {
     customerid?: string;
     customername?: string;
     leadsource?: string;
-    LeadDiscription: string;
+    LeadDiscription?: string;   // ← was: LeadDiscription: string;
     status?: string;
 }
 
