@@ -28,8 +28,12 @@ interface DashboardData {
   recommendations: string[];
   replySentiments: any[];
   leadsData: any[];
-}
 
+    revenueTrend: {
+    month: string;
+    revenue: number;
+  }[];
+}
 export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,7 +50,7 @@ export default function ReportsPage() {
     leadAnalytics: [],
     averageScore: 0,
     conversionRate: 0,
-
+    revenueTrend: [],
     prediction: {
       predicted_leads: 0,
       conversion_rate: "0%",
@@ -88,8 +92,12 @@ export default function ReportsPage() {
     console.log("Fetching fresh dashboard...");
 
     const response = await axios.get(`${baseurl}/dashboard/${userid}`);
+    console.log(response.data);
+console.log(response.data.data);
+                          
 
     setDashboard(response.data.data);
+    
 
     sessionStorage.setItem(
       `dashboard-${userid}`,
@@ -118,7 +126,7 @@ export default function ReportsPage() {
           return;
         }
       }
-
+      
       await fetchDashboard();
     } catch (err) {
       console.error(err);
@@ -131,7 +139,8 @@ export default function ReportsPage() {
   if (!userid || loaded) return;
 
   loadDashboard();
-  setLoaded(true);
+  console.log("Dashboard Loaded", loadDashboard());
+    setLoaded(true);
 }, [userid, loaded]);
 
   const refreshDashboard = async () => {
@@ -177,6 +186,7 @@ export default function ReportsPage() {
       aiRecommendations={dashboard.recommendations}
       AIReply={dashboard.replySentiments}
       leadsdata={dashboard.leadsData}
+      revenueTrend={dashboard.revenueTrend}
     />
   );
 }

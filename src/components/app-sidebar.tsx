@@ -57,6 +57,7 @@ const navItems = [
     url: "/admin/invoice",
     icon: BookUser,
   },
+
   {
     title: "Reports",
     url: "/admin/reports",

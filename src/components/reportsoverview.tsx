@@ -60,7 +60,9 @@ import {
   CheckCircle2,
   UserPlus,
   Phone,
-  RefreshCw
+  RefreshCw,
+  DollarSign,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
@@ -77,6 +79,10 @@ interface EmailAnalytics {
   sent: number;
   replies: number;
   ignored: number;
+}
+interface RevenueAnalytics {
+  month: string;
+  revenue: number;
 }
 
 interface LeadAnalytics {
@@ -130,6 +136,7 @@ interface ReportsPageProps {
   averagescore: number;
   refreshing: boolean;
   onRefresh: () => void;
+  revenueTrend: RevenueAnalytics[];
 }
 
 type StatusType = "NEW" | "CONTACTED" | "QUALIFIED" | "LOST" | "WON";
@@ -308,6 +315,113 @@ function LeadAnalyticsChart({
   );
 }
 
+
+
+
+
+const STATIC_INVOICE_STATUS = [
+  { label: "Paid", value: 62, color: "#10b981" },
+  { label: "Pending", value: 27, color: "#f59e0b" },
+  { label: "Overdue", value: 11, color: "#f43f5e" },
+];
+
+const STATIC_TOTAL_REVENUE = "$89,400";
+
+const revenueChartConfig = {
+  revenue: {
+    label: "Revenue",
+    color: "#10b981",
+  },
+} satisfies ChartConfig;
+
+function normalizeMonthlyRevenue(data: { month: string; revenue: number }[]) {
+  const map = new Map(data.map((d) => [d.month, d.revenue]));
+  return ALL_MONTHS.map((month) => ({
+    month,
+    revenue: map.get(month) ?? 0,
+  }));
+}
+
+function RevenueTrendChart({
+    data
+}:{
+    data:{
+        month:string
+        revenue:number
+    }[]
+}){
+   const chartData = normalizeMonthlyRevenue(data ?? []); 
+  return (
+    <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
+      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
+        <div className="flex flex-wrap items-center justify-between gap-1">
+          <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
+            Revenue Trend
+          </CardTitle>
+          <span className="text-xs text-muted-foreground font-medium">
+            Monthly Revenue
+          </span>
+        </div>
+      </CardHeader>
+      <CardContent className="px-2 sm:px-5 pb-4 sm:pb-5">
+        <ChartContainer config={revenueChartConfig} className="h-40 w-full">
+          <AreaChart
+            data={chartData}
+            margin={{ left: 0, right: 0, top: 8, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id="revenueArea" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor="var(--color-revenue)"
+                  stopOpacity={0.25}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="var(--color-revenue)"
+                  stopOpacity={0}
+                />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <XAxis
+              dataKey="month"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+              interval="preserveStartEnd"
+              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+            />
+            <ChartTooltip
+              cursor={false}
+              content={
+                <ChartTooltipContent
+                  formatter={(value) => [`$${Number(value).toLocaleString()}`, "Revenue"]}
+                />
+              }
+            />
+            <Area
+              dataKey="revenue"
+              type="monotone"
+              fill="url(#revenueArea)"
+              stroke="var(--color-revenue)"
+              strokeWidth={2.5}
+              dot={{
+                r: 3,
+                fill: "var(--color-revenue)",
+                stroke: "white",
+                strokeWidth: 1.5,
+              }}
+              activeDot={{ r: 5 }}
+            />
+          </AreaChart>
+        </ChartContainer>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 const stageColors: Record<string, string> = {
   New: "bg-indigo-600",
   Contacted: "bg-violet-500",
@@ -438,6 +552,7 @@ function EmailAnalyticsChart({ data }: { data: EmailAnalytics[] }) {
 }
 /* ─────────────────────────────────────────────────────────────────────────
    Pie chart (conic-gradient based — no extra dependency)
+   Reused as-is for Invoice Status below (Paid / Pending / Overdue).
 ───────────────────────────────────────────────────────────────────────── */
 
 function PieChartCard({
@@ -812,8 +927,9 @@ export default function ReportsPage({
   aiprediction,
   conversionrate,
   averagescore,
-   refreshing,
-  onRefresh
+  refreshing,
+  revenueTrend,
+  onRefresh,
 }: ReportsPageProps) {
   const overview = [
     {
@@ -856,6 +972,14 @@ export default function ReportsPage({
       label: "Lead Score Avg",
       value: averagescore,
       change: "+4 pts",
+      type: "positive" as const,
+    },
+    // ── Revenue overview card (new, static — design only) ──
+    {
+      icon: DollarSign,
+      label: "Total Revenue",
+      value: STATIC_TOTAL_REVENUE,
+      change: "+9.6%",
       type: "positive" as const,
     },
   ];
@@ -1072,10 +1196,25 @@ export default function ReportsPage({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        {/* Overview cards — now 7 with Total Revenue included */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4">
           {overview.map((o) => (
             <OverviewCard key={o.label} {...o} />
           ))}
+        </div>
+
+        {/* ── Revenue Analytics section (new, static design-only) ── */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">
+          <div className="xl:col-span-2">
+            <RevenueTrendChart data={revenueTrend} />
+          </div>
+          <div>
+            <PieChartCard
+              title="Invoice Status"
+              icon={Receipt}
+              data={STATIC_INVOICE_STATUS}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">
