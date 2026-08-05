@@ -1002,26 +1002,43 @@ export default function ReportsPage({
 
   const reportRef = useRef<HTMLDivElement>(null);
   const exportPDF = async () => {
-    if (!reportRef.current) return;
+  if (!reportRef.current) return;
 
-    const dataUrl = await htmlToImage.toPng(reportRef.current);
+  const dataUrl = await htmlToImage.toPng(reportRef.current, {
+    pixelRatio: 2,
+    backgroundColor: "#ffffff",
+  });
 
+  const img = new Image();
+  img.src = dataUrl;
+
+  img.onload = () => {
     const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
 
-    const width = pdf.internal.pageSize.getWidth();
+    // scale the captured image to fit the PDF's page width
+    const imgWidth = pageWidth;
+    const imgHeight = (img.height * imgWidth) / img.width;
 
-    const img = new Image();
+    let heightLeft = imgHeight;
+    let position = 0;
 
-    img.src = dataUrl;
+    // first page
+    pdf.addImage(dataUrl, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
 
-    img.onload = () => {
-      const height = (img.height * width) / img.width;
+    // keep adding pages, shifting the same tall image further up each time
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(dataUrl, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
 
-      pdf.addImage(dataUrl, "PNG", 0, 0, width, height);
-
-      pdf.save("CRM_Report.pdf");
-    };
+    pdf.save("CRM_Report.pdf");
   };
+};
 
   const exportExcel = () => {
     const workbook = XLSX.utils.book_new();
