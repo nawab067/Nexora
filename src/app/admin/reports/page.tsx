@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import ReportsPageproops from "@/components/reportsoverview";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
 
@@ -11,6 +13,7 @@ interface DashboardData {
   countLeads: number;
   customers: number;
   emails: number;
+  revenueCount: number;
   replies: number;
   monthly: any[];
   pipeline: any[];
@@ -33,6 +36,12 @@ interface DashboardData {
     month: string;
     revenue: number;
   }[];
+
+   invoiceStatus: {
+    label: string;
+    value: number;
+    color: string;
+  }[];
 }
 export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
@@ -43,6 +52,7 @@ export default function ReportsPage() {
     countLeads: 0,
     customers: 0,
     emails: 0,
+    revenueCount: 0,
     replies: 0,
     monthly: [],
     pipeline: [],
@@ -57,6 +67,7 @@ export default function ReportsPage() {
       confidence: "0%",
       prediction: "",
     },
+    invoiceStatus: [],
 
     insights: "",
     recommendations: [],
@@ -92,8 +103,9 @@ export default function ReportsPage() {
     console.log("Fetching fresh dashboard...");
 
     const response = await axios.get(`${baseurl}/dashboard/${userid}`);
-    console.log(response.data);
-console.log(response.data.data);
+
+
+console.log(response.data.data.invoiceStatus);
                           
 
     setDashboard(response.data.data);
@@ -139,7 +151,7 @@ console.log(response.data.data);
   if (!userid || loaded) return;
 
   loadDashboard();
-  console.log("Dashboard Loaded", loadDashboard());
+ 
     setLoaded(true);
 }, [userid, loaded]);
 
@@ -159,14 +171,25 @@ console.log(response.data.data);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        Loading Reports...
-      </div>
-    );
-  }
-
+ if (loading) {
+  return(
+     <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <Card className="w-full max-w-sm rounded-xl border-none shadow-sm">
+        <CardContent className="flex flex-col items-center gap-4 py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <div className="text-center">
+            <p className="text-sm font-medium text-slate-900">
+              Please wait Your Reports are loading
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              Just a moment while we connect your reports…
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
   return (
     <ReportsPageproops
       refreshing={refreshing}
@@ -187,6 +210,8 @@ console.log(response.data.data);
       AIReply={dashboard.replySentiments}
       leadsdata={dashboard.leadsData}
       revenueTrend={dashboard.revenueTrend}
+      invoiceStatus={dashboard.invoiceStatus}
+      RevenueCount={dashboard.revenueCount}
     />
   );
 }

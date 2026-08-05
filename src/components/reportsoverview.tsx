@@ -73,7 +73,12 @@ export interface Analytics {
   count: number;
   percentage: number;
 }
+interface invoicechart{
+   label: string;
+    value: number;
+    color: string;
 
+  }
 interface EmailAnalytics {
   label: string;
   sent: number;
@@ -137,6 +142,8 @@ interface ReportsPageProps {
   refreshing: boolean;
   onRefresh: () => void;
   revenueTrend: RevenueAnalytics[];
+  invoiceStatus: invoicechart[];
+  RevenueCount: number;
 }
 
 type StatusType = "NEW" | "CONTACTED" | "QUALIFIED" | "LOST" | "WON";
@@ -319,11 +326,6 @@ function LeadAnalyticsChart({
 
 
 
-const STATIC_INVOICE_STATUS = [
-  { label: "Paid", value: 62, color: "#10b981" },
-  { label: "Pending", value: 27, color: "#f59e0b" },
-  { label: "Overdue", value: 11, color: "#f43f5e" },
-];
 
 const STATIC_TOTAL_REVENUE = "$89,400";
 
@@ -929,6 +931,8 @@ export default function ReportsPage({
   averagescore,
   refreshing,
   revenueTrend,
+   invoiceStatus,
+  RevenueCount,
   onRefresh,
 }: ReportsPageProps) {
   const overview = [
@@ -978,7 +982,7 @@ export default function ReportsPage({
     {
       icon: DollarSign,
       label: "Total Revenue",
-      value: STATIC_TOTAL_REVENUE,
+      value: RevenueCount.toString(),
       change: "+9.6%",
       type: "positive" as const,
     },
@@ -1212,7 +1216,7 @@ export default function ReportsPage({
             <PieChartCard
               title="Invoice Status"
               icon={Receipt}
-              data={STATIC_INVOICE_STATUS}
+              data={invoiceStatus}
             />
           </div>
         </div>
