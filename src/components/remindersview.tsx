@@ -36,8 +36,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 // ─── Data shape (matches your /email-replies/user/:id response) ───────────────
 export interface EmailReply {
@@ -322,6 +323,51 @@ export default function RemindersView({
         setDeleteTarget(reply);
         setDeleteConfirmOpen(true);
     };
+     const [userid, setUserid] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+
+        if (!token) return;
+
+        const res = await axios.get(`${baseurl}/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setUserid(res.data.id);
+        
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  const handleshowUsername = async () => {
+    try {
+      const respoonse = await axios.get(`${baseurl}/admin/users/${userid}`);
+      
+    console.log("API Response:", respoonse.data);
+    console.log("Type:", typeof respoonse.data);
+      setUsername(respoonse.data);     
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  useEffect(() => {
+    if(!userid){
+      return;
+    }
+    handleshowUsername();
+  }, [userid])  
 
     const handleDelete = async () => {
         if (!deleteTarget) return;
@@ -418,18 +464,15 @@ export default function RemindersView({
                             />
                         </div>
                         <div className="flex items-center gap-1 ml-auto">
-                            <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-                                <Bell className="w-4 h-4" />
-                            </button>
-                            <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-                                <HelpCircle className="w-4 h-4" />
-                            </button>
-                            <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                            
+                            
+                            <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                            onClick={() => router.push("/admin/settings")}>
                                 <Settings className="w-4 h-4" />
                             </button>
                             <Separator orientation="vertical" className="h-5 mx-2" />
                             <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                                AR
+                                {username ? username.slice(0, 2).toUpperCase() : "U"}
                             </div>
                         </div>
                     </>

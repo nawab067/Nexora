@@ -1,6 +1,6 @@
 "use client";
 import Papa from "papaparse";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -61,6 +61,8 @@ import {
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 // Local type for customer entries — matches actual API response shape
 interface CustomerWithImage {
@@ -316,6 +318,52 @@ export default function CustomerInfoView({
     () => Array.from(new Set(filtered.map((c) => c.Designation).filter(Boolean))) as string[],
     [filtered]
   );
+const baseurl= process.env.NEXT_PUBLIC_BASE_URL
+    const [userid, setUserid] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+
+        if (!token) return;
+
+        const res = await axios.get(`${baseurl}/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setUserid(res.data.id);
+        
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  const handleshowUsername = async () => {
+    try {
+      const respoonse = await axios.get(`${baseurl}/admin/users/${userid}`);
+      
+    console.log("API Response:", respoonse.data);
+    console.log("Type:", typeof respoonse.data);
+      setUsername(respoonse.data);     
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  useEffect(() => {
+    if(!userid){
+      return;
+    }
+    handleshowUsername();
+  }, [userid])
 
   const toggleDesignation = (d: string) => {
     setDesignationFilter((prev) => {
@@ -368,19 +416,18 @@ export default function CustomerInfoView({
           />
         </div>
         <div className="flex items-center gap-0.5 sm:gap-1 ml-auto shrink-0">
-          <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hidden sm:inline-flex">
-            <Bell className="w-4 h-4" />
+          <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hidden sm:inline-flex"
+          onClick={() => router.push("/admin/Reminders")}>
+          <Bell className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hidden sm:inline-flex">
-            <HelpCircle className="w-4 h-4" />
-          </Button>
+          
           <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hidden xs:inline-flex">
             <Settings className="w-4 h-4" />
           </Button>
           <Separator orientation="vertical" className="h-5 mx-1 sm:mx-2 hidden sm:block" />
           <Avatar className="w-8 h-8">
             <AvatarFallback className="bg-indigo-600 text-white text-xs font-bold">
-              AR
+               {username ? username.slice(0, 2).toUpperCase() : "U"}
             </AvatarFallback>
           </Avatar>
         </div>

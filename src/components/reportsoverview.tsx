@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Brain, ChevronDown } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import * as htmlToImage from "html-to-image";
 import jsPDF from "jspdf";
 
@@ -67,18 +67,19 @@ import {
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 export interface Analytics {
   label: string;
   count: number;
   percentage: number;
 }
-interface invoicechart{
-   label: string;
-    value: number;
-    color: string;
-
-  }
+interface invoicechart {
+  label: string;
+  value: number;
+  color: string;
+}
 interface EmailAnalytics {
   label: string;
   sent: number;
@@ -210,7 +211,9 @@ function OverviewCard({
             {change}
           </span>
         </div>
-        <p className="text-xs sm:text-sm text-muted-foreground mb-1 truncate">{label}</p>
+        <p className="text-xs sm:text-sm text-muted-foreground mb-1 truncate">
+          {label}
+        </p>
         <p className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
           {value}
         </p>
@@ -322,11 +325,6 @@ function LeadAnalyticsChart({
   );
 }
 
-
-
-
-
-
 const STATIC_TOTAL_REVENUE = "$89,400";
 
 const revenueChartConfig = {
@@ -345,14 +343,14 @@ function normalizeMonthlyRevenue(data: { month: string; revenue: number }[]) {
 }
 
 function RevenueTrendChart({
-    data
-}:{
-    data:{
-        month:string
-        revenue:number
-    }[]
-}){
-   const chartData = normalizeMonthlyRevenue(data ?? []); 
+  data,
+}: {
+  data: {
+    month: string;
+    revenue: number;
+  }[];
+}) {
+  const chartData = normalizeMonthlyRevenue(data ?? []);
   return (
     <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
       <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
@@ -398,7 +396,10 @@ function RevenueTrendChart({
               cursor={false}
               content={
                 <ChartTooltipContent
-                  formatter={(value) => [`$${Number(value).toLocaleString()}`, "Revenue"]}
+                  formatter={(value) => [
+                    `$${Number(value).toLocaleString()}`,
+                    "Revenue",
+                  ]}
                 />
               }
             />
@@ -422,7 +423,6 @@ function RevenueTrendChart({
     </Card>
   );
 }
-
 
 const stageColors: Record<string, string> = {
   New: "bg-indigo-600",
@@ -625,7 +625,6 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
       const bReplies = b.replies ?? 0;
       if (aReplies > 0 && bReplies === 0) return -1;
       if (aReplies === 0 && bReplies > 0) return 1;
-
 
       return bReplies - aReplies;
     });
@@ -912,7 +911,7 @@ function LeadPredictionCard({ prediction }: { prediction: AIPredictionType }) {
 /* ─────────────────────────────────────────────────────────────────────────
    Recent Activity Timeline
 ───────────────────────────────────────────────────────────────────────── */
-
+const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
 export default function ReportsPage({
   countleads,
   countcustomer,
@@ -931,10 +930,55 @@ export default function ReportsPage({
   averagescore,
   refreshing,
   revenueTrend,
-   invoiceStatus,
+  invoiceStatus,
   RevenueCount,
   onRefresh,
 }: ReportsPageProps) {
+  const [userid, setUserid] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+
+        if (!token) return;
+
+        const res = await axios.get(`${baseurl}/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setUserid(res.data.id);
+        
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  const handleshowUsername = async () => {
+    try {
+      const respoonse = await axios.get(`${baseurl}/admin/users/${userid}`);
+      
+    console.log("API Response:", respoonse.data);
+    console.log("Type:", typeof respoonse.data);
+      setUsername(respoonse.data);     
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  useEffect(() => {
+    if(!userid){
+      return;
+    }
+    handleshowUsername();
+  }, [userid])         
   const overview = [
     {
       icon: Users,
@@ -1001,44 +1045,24 @@ export default function ReportsPage({
   }, [AIReply]);
 
   const reportRef = useRef<HTMLDivElement>(null);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const exportPDF = async () => {
-  if (!reportRef.current) return;
-
-  const dataUrl = await htmlToImage.toPng(reportRef.current, {
-    pixelRatio: 2,
-    backgroundColor: "#ffffff",
-  });
-
-  const img = new Image();
-  img.src = dataUrl;
-
-  img.onload = () => {
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
-    // scale the captured image to fit the PDF's page width
-    const imgWidth = pageWidth;
-    const imgHeight = (img.height * imgWidth) / img.width;
-
-    let heightLeft = imgHeight;
-    let position = 0;
-
-    // first page
-    pdf.addImage(dataUrl, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-
-    // keep adding pages, shifting the same tall image further up each time
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(dataUrl, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+    setIsExportingPDF(true);
+    try {
+      const response = await axios.get(`${baseurl}/generate-report/${userid}`);
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "report.pdf";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+    } finally {
+      setIsExportingPDF(false);
     }
-
-    pdf.save("CRM_Report.pdf");
   };
-};
 
   const exportExcel = () => {
     const workbook = XLSX.utils.book_new();
@@ -1166,18 +1190,20 @@ export default function ReportsPage({
         </div>
 
         <div className="flex items-center gap-1 ml-auto shrink-0">
-          <button className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+          <button className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          onClick={() => router.push("/admin/Reminders")}>
             <Bell className="w-4 h-4" />
           </button>
-          <button className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-            <HelpCircle className="w-4 h-4" />
-          </button>
-          <button className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+          <button className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          onClick={() => router.push("/admin/settings")}>
             <Settings className="w-4 h-4" />
           </button>
-          <Separator orientation="vertical" className="h-5 mx-2 hidden sm:block" />
+          <Separator
+            orientation="vertical"
+            className="h-5 mx-2 hidden sm:block"
+          />
           <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-            AR
+            {username ? username.slice(0, 2).toUpperCase() : "U"}
           </div>
         </div>
       </header>
@@ -1190,7 +1216,9 @@ export default function ReportsPage({
         {/* Heading */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-foreground">Reports</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-foreground">
+              Reports
+            </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               Understand your sales performance with AI insights.
             </p>
@@ -1201,10 +1229,20 @@ export default function ReportsPage({
               size="sm"
               id="report"
               onClick={exportPDF}
-              className="h-8 text-xs gap-1.5 border-border text-muted-foreground flex-1 sm:flex-none"
+              disabled={isExportingPDF}
+              className="h-8 text-xs gap-1.5 border-rose-200 text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300 disabled:opacity-70 transition-colors flex-1 sm:flex-none"
             >
-              <FileText className="w-3.5 h-3.5" />
-              Export PDF
+              {isExportingPDF ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-3.5 h-3.5" />
+                  Export PDF
+                </>
+              )}
             </Button>
             <Button
               size="sm"
