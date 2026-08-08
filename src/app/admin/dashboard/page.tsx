@@ -5,13 +5,36 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import AdminDashboardView from "@/components/dashboardview";
 
+
+interface RevenueChartItem {
+  day: string;
+  this_week: number;
+  last_week: number;
+}
+
+interface LeadPipeline{
+  label: string;
+  count: number;
+  percentage: number;
+}
+
+interface RevenueVelocity {
+  chart: RevenueChartItem[];
+  growth_percentage: number;
+  total_last_week: number;
+  total_this_week: number;
+}
 export default function AdminDashboardContainer() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
+  const [useremail, setUseremail] = useState<string | null>(null);
   const [leadcount, setleadcount] = useState<string | null>(null);
-
+const [userid, setUserid] = useState<string | null>(null);
+const [revenueVelocity, setRevenueVelocity] =
+  useState<RevenueVelocity | null>(null);
+  const [leadPipelineData, setLeadPipelineData] = useState<LeadPipeline[] | null>(null);
   const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
 
   useEffect(() => {
@@ -30,7 +53,10 @@ export default function AdminDashboardContainer() {
           },
         });
 
-        setUsername(response.data.email);
+        setUserid(response.data.id);
+
+        setUseremail(response.data.email);
+        
         setLoading(false);
 
       } catch (error) {
@@ -60,13 +86,45 @@ export default function AdminDashboardContainer() {
     fetchleadCount();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        Loading...
-      </div>
-    );
+  const fetch_revenue_velocity= async()=>{
+    try{
+      const response = await axios.get(`${baseurl}/get-revenue-velocity/${userid}`);
+      setRevenueVelocity(response.data.data);
+      console.log("Revenue Velocity:", response.data);
+
+    }catch(error){
+      console.log("Error fetching revenue velocity");
+    }
   }
+  const leadPipeline= async()=>{
+    try{
+      const response = await axios.get(`${baseurl}/get-lead-pipeline/${userid}`);
+      setLeadPipelineData(response.data.data);
+      console.log("Lead Pipeline:", response.data);
+
+    }catch(error){
+      console.error("Error fetching lead pipeline");
+    }
+  }
+
+  const fetchUsername= async()=>{
+    try{
+      const response = await axios.get(`${baseurl}/admin/users/${userid}`);
+      setUsername(response.data);
+
+    }catch(error){
+      console.error("Error fetching username");
+    }
+  }
+  useEffect(()=>{
+    if(!userid){
+      return;
+    }
+    fetch_revenue_velocity();
+    leadPipeline();
+    fetchUsername();
+  },[userid]);
+
 
   if (loading) {
     return (
@@ -81,8 +139,10 @@ export default function AdminDashboardContainer() {
   return (
     <AdminDashboardView
       username={username}
+      useremail={useremail}
       leadcount={leadcount}
-
+      revenueVelocity={revenueVelocity}
+      leadPipelineData={leadPipelineData}
     />
   );
 }
