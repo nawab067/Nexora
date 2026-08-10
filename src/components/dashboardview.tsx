@@ -3,9 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   ChartConfig,
   ChartContainer,
@@ -19,32 +16,23 @@ import {
   TrendingDown,
   DollarSign,
   BarChart3,
-  Download,
-  Calendar,
-  Mail,
-  Phone,
-  UserPlus,
-  CheckCircle2,
   Bell,
-  HelpCircle,
   Settings,
   Search,
-  Sparkles,
   ArrowUpRight,
-  ArrowRight,
   Target,
-  Flame,
-  Clock,
-  MessageSquare,
   RefreshCw,
   FileText,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Stat card — headline metric with inline trend + sparkline
+   Types
 ───────────────────────────────────────────────────────────────────────── */
 interface LeadPipeline {
   label: string;
@@ -56,21 +44,29 @@ interface RevenueChartItem {
   this_week: number;
   last_week: number;
 }
-
+interface SalesCards {
+  conversionRate: { value: number; unit: string };
+  averageDealValue: { value: number; unit: string };
+  projectedRevenue: { value: number; unit: string };
+}
 interface RevenueVelocity {
   chart: RevenueChartItem[];
   growth_percentage: number;
   total_last_week: number;
   total_this_week: number;
 }
-
 interface AdminDashboardViewProps {
   useremail: string | null;
   leadcount: string | null;
   revenueVelocity: RevenueVelocity | null;
   leadPipelineData: LeadPipeline[] | null;
   username: string | null;
+  salesCards: SalesCards | null;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Stat card — headline metric with icon badge + trend chip
+───────────────────────────────────────────────────────────────────────── */
 function StatCard({
   icon: Icon,
   label,
@@ -89,42 +85,55 @@ function StatCard({
   accent?: "indigo" | "emerald" | "amber" | "violet";
 }) {
   const displayValue = value ?? "—";
-  const ACCENTS: Record<string, string> = {
-    indigo: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
-    emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  const isLoading = value === null;
+
+  const ACCENTS: Record<string, { icon: string; bar: string }> = {
+    indigo: { icon: "bg-indigo-50 text-indigo-600", bar: "bg-indigo-500" },
+    emerald: { icon: "bg-emerald-50 text-emerald-600", bar: "bg-emerald-500" },
+    amber: { icon: "bg-amber-50 text-amber-600", bar: "bg-amber-500" },
+    violet: { icon: "bg-violet-50 text-violet-600", bar: "bg-violet-500" },
   };
   const TrendIcon = changeType === "positive" ? ArrowUpRight : TrendingDown;
 
   return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl overflow-hidden relative">
+    <Card className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+      <span
+        className={cn(
+          "absolute inset-x-0 top-0 h-0.5",
+          ACCENTS[accent].bar,
+        )}
+      />
       <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-4">
+        <div className="mb-5 flex items-start justify-between">
           <div
             className={cn(
-              "w-10 h-10 rounded-lg flex items-center justify-center",
-              ACCENTS[accent],
+              "flex h-9 w-9 items-center justify-center rounded-lg",
+              ACCENTS[accent].icon,
             )}
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="h-4.5 w-4.5" strokeWidth={2} />
           </div>
           <span
             className={cn(
-              "flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full",
+              "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium",
               stable
-                ? "bg-muted text-muted-foreground"
+                ? "bg-slate-100 text-slate-500"
                 : changeType === "positive"
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : "bg-rose-500/10 text-rose-500 dark:text-rose-400",
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "bg-rose-50 text-rose-600",
             )}
           >
-            {!stable && <TrendIcon className="w-3 h-3" />}
+            {!stable && <TrendIcon className="h-3 w-3" />}
             {change}
           </span>
         </div>
-        <p className="text-sm text-muted-foreground mb-1">{label}</p>
-        <p className="text-2xl font-bold text-foreground tracking-tight">
+        <p className="text-[13px] font-medium text-slate-500">{label}</p>
+        <p
+          className={cn(
+            "mt-1 text-[26px] font-semibold tracking-tight text-slate-900 tabular-nums",
+            isLoading && "text-slate-300",
+          )}
+        >
           {displayValue}
         </p>
       </CardContent>
@@ -133,24 +142,12 @@ function StatCard({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Revenue chart — smooth gradient area chart (recharts, matches Reports page)
+   Revenue chart — gradient area chart with legend toggles
 ───────────────────────────────────────────────────────────────────────── */
-
 const revenueChartConfig = {
-  this_week: {
-    label: "This week",
-    color: "#4f46e5",
-  },
-  last_week: {
-    label: "Last week",
-    color: "#c7d2fe",
-  },
+  this_week: { label: "This week", color: "#4f46e5" },
+  last_week: { label: "Last week", color: "#c7d2fe" },
 } satisfies ChartConfig;
-
-import { useEffect, useRef, useState } from "react";
-import axios from "axios";
-import { useRouter } from "next/navigation";
-// ...keep your existing imports, just add useState
 
 function RevenueChart({
   revenueVelocity,
@@ -163,144 +160,133 @@ function RevenueChart({
   const weekTotal = revenueVelocity?.total_this_week ?? 0;
   const prevTotal = revenueVelocity?.total_last_week ?? 0;
   const delta = revenueVelocity?.growth_percentage ?? 0;
+  const hasData = !!revenueVelocity?.chart?.length;
 
   return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-5 pt-5">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <CardTitle className="text-base font-semibold text-foreground">
-              Revenue Velocity
-            </CardTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              ${weekTotal.toLocaleString()} this week{" "}
-              <span
-                className={cn(
-                  "font-medium",
-                  delta < 0
-                    ? "text-rose-500"
-                    : "text-emerald-600 dark:text-emerald-400",
-                )}
-              >
-                {delta > 0 ? "+" : ""}
-                {delta}%
-              </span>{" "}
-              · ${prevTotal.toLocaleString()} last week
-            </p>
-          </div>
+    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 px-5 pb-2 pt-5">
+        <div>
+          <CardTitle className="text-[15px] font-semibold text-slate-900">
+            Revenue velocity
+          </CardTitle>
+          <p className="mt-1 text-xs text-slate-500">
+            <span className="font-semibold tabular-nums text-slate-900">
+              ${weekTotal.toLocaleString()}
+            </span>{" "}
+            this week ·{" "}
+            <span
+              className={cn(
+                "font-medium tabular-nums",
+                delta < 0 ? "text-rose-600" : "text-emerald-600",
+              )}
+            >
+              {delta > 0 ? "+" : ""}
+              {delta}%
+            </span>{" "}
+            vs ${prevTotal.toLocaleString()} last week
+          </p>
+        </div>
 
-          {/* Legend as actual toggle buttons */}
-          <div className="flex items-center gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => setShowThisWeek((v) => !v)}
-              className={cn(
-                "flex items-center gap-1.5 px-2 py-1 rounded-md border transition-colors",
-                showThisWeek
-                  ? "border-indigo-600/30 text-foreground bg-indigo-500/5"
-                  : "border-border text-muted-foreground opacity-50",
-              )}
-            >
-              <span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-600" />
-              This week
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowLastWeek((v) => !v)}
-              className={cn(
-                "flex items-center gap-1.5 px-2 py-1 rounded-md border transition-colors",
-                showLastWeek
-                  ? "border-indigo-200 text-foreground bg-indigo-500/5"
-                  : "border-border text-muted-foreground opacity-50",
-              )}
-            >
-              <span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-200 dark:bg-indigo-900" />
-              Last week
-            </button>
-          </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setShowThisWeek((v) => !v)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors",
+              showThisWeek
+                ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                : "border-slate-200 text-slate-400",
+            )}
+          >
+            <span className="inline-block h-2 w-2 rounded-full bg-indigo-600" />
+            This week
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowLastWeek((v) => !v)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors",
+              showLastWeek
+                ? "border-slate-200 bg-slate-50 text-slate-600"
+                : "border-slate-200 text-slate-400",
+            )}
+          >
+            <span className="inline-block h-2 w-2 rounded-full bg-indigo-200" />
+            Last week
+          </button>
         </div>
       </CardHeader>
       <CardContent className="px-5 pb-5">
-        <ChartContainer config={revenueChartConfig} className="h-52 w-full">
-          <AreaChart
-            data={revenueVelocity?.chart || []}
-            margin={{ left: 0, right: 0, top: 8, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="currentArea" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="0%"
-                  stopColor="var(--color-this_week)"
-                  stopOpacity={0.28}
-                />
-                <stop
-                  offset="100%"
-                  stopColor="var(--color-this_week)"
-                  stopOpacity={0}
-                />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
-            <XAxis
-              dataKey="day"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-            />
-            <YAxis hide />
-            <ChartTooltip
-              cursor={{ stroke: "hsl(var(--border))" }}
-              content={<ChartTooltipContent />}
-            />
-            {showLastWeek && (
-              <Area
-                dataKey="last_week"
-                type="monotone"
-                fill="none"
-                stroke="var(--color-last_week)"
-                strokeWidth={2}
-                strokeDasharray="4 4"
-                dot={false}
+        {hasData ? (
+          <ChartContainer config={revenueChartConfig} className="h-56 w-full">
+            <AreaChart
+              data={revenueVelocity?.chart || []}
+              margin={{ left: 0, right: 0, top: 8, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="currentArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-this_week)" stopOpacity={0.24} />
+                  <stop offset="100%" stopColor="var(--color-this_week)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} stroke="#f1f5f9" />
+              <XAxis
+                dataKey="day"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={10}
+                tick={{ fontSize: 11, fill: "#94a3b8" }}
               />
-            )}
-            {showThisWeek && (
-              <Area
-                dataKey="this_week"
-                type="monotone"
-                fill="url(#currentArea)"
-                stroke="var(--color-this_week)"
-                strokeWidth={2.5}
-                dot={{
-                  r: 3,
-                  fill: "var(--color-this_week)",
-                  stroke: "white",
-                  strokeWidth: 1.5,
-                }}
-                activeDot={{ r: 5 }}
+              <YAxis hide />
+              <ChartTooltip
+                cursor={{ stroke: "#e2e8f0" }}
+                content={<ChartTooltipContent />}
               />
-            )}
-          </AreaChart>
-        </ChartContainer>
+              {showLastWeek && (
+                <Area
+                  dataKey="last_week"
+                  type="monotone"
+                  fill="none"
+                  stroke="var(--color-last_week)"
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  dot={false}
+                />
+              )}
+              {showThisWeek && (
+                <Area
+                  dataKey="this_week"
+                  type="monotone"
+                  fill="url(#currentArea)"
+                  stroke="var(--color-this_week)"
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: "var(--color-this_week)", stroke: "white", strokeWidth: 1.5 }}
+                  activeDot={{ r: 5 }}
+                />
+              )}
+            </AreaChart>
+          </ChartContainer>
+        ) : (
+          <div className="flex h-56 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-200 text-center">
+            <BarChart3 className="h-5 w-5 text-slate-300" />
+            <p className="text-xs text-slate-400">No revenue data yet this week</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Pipeline snapshot — stage bars
+───────────────────────────────────────────────────────────────────────── */
 const STAGE_COLORS: Record<string, string> = {
   New: "bg-indigo-600",
   Contacted: "bg-violet-500",
   Qualified: "bg-blue-500",
   Won: "bg-emerald-500",
 };
-
-const FALLBACK_COLORS = [
-  "bg-indigo-600",
-  "bg-violet-500",
-  "bg-blue-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-];
-
+const FALLBACK_COLORS = ["bg-indigo-600", "bg-violet-500", "bg-blue-500", "bg-emerald-500", "bg-amber-500"];
 function getStageColor(label: string, index: number) {
   return STAGE_COLORS[label] ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length];
 }
@@ -310,54 +296,66 @@ function PipelineSnapshot({
 }: {
   leadPipelineData: LeadPipeline[] | null;
 }) {
+  const hasData = !!leadPipelineData?.length;
+
   return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-5 pt-5">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold text-foreground">
-            Lead Snapshot
-          </CardTitle>
-          <Target className="w-4 h-4 text-muted-foreground" />
-        </div>
+    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="flex-row items-center justify-between space-y-0 px-5 pb-2 pt-5">
+        <CardTitle className="text-[15px] font-semibold text-slate-900">
+          Lead snapshot
+        </CardTitle>
+        <Target className="h-4 w-4 text-slate-400" />
       </CardHeader>
-      <CardContent className="px-5 pb-5 space-y-3">
-        {leadPipelineData?.map((item, index) => (
-          <div key={item.label} className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground font-medium w-20 shrink-0">
-              {item.label}
-            </span>
-            <div className="flex-1 h-6 bg-muted rounded-md overflow-hidden">
-              <div
-                className={cn(
-                  "h-full rounded-md flex items-center justify-end px-2 transition-all",
-                  getStageColor(item.label, index),
-                )}
-                style={{ width: `${item.percentage}%` }}
-              >
-                <span className="text-[10px] font-semibold text-white">
+      <CardContent className="px-5 pb-5">
+        {hasData ? (
+          <div className="space-y-3.5">
+            {leadPipelineData!.map((item, index) => (
+              <div key={item.label} className="flex items-center gap-3">
+                <span className="w-[68px] shrink-0 text-xs font-medium text-slate-500">
+                  {item.label}
+                </span>
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all",
+                      getStageColor(item.label, index),
+                    )}
+                    style={{ width: `${item.percentage}%` }}
+                  />
+                </div>
+                <span className="w-6 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
                   {item.count}
                 </span>
               </div>
-            </div>
+            ))}
           </div>
-        ))}
-        <Separator className="!my-4" />
+        ) : (
+          <p className="py-6 text-center text-xs text-slate-400">No pipeline data yet</p>
+        )}
+
+        <Separator className="my-4" />
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">Win rate this quarter</p>
-          <p className="text-sm font-semibold text-foreground">18.4%</p>
+          <p className="text-xs text-slate-500">Win rate this quarter</p>
+          <Badge variant="secondary" className="rounded-full bg-emerald-50 font-semibold text-emerald-700 hover:bg-emerald-50">
+            18.4%
+          </Badge>
         </div>
       </CardContent>
     </Card>
   );
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Page
+───────────────────────────────────────────────────────────────────────── */
 export default function AdminDashboardView({
   useremail,
   username,
   leadcount,
   revenueVelocity,
   leadPipelineData,
+  salesCards,
 }: AdminDashboardViewProps) {
-  const firstName = useremail?.split(" ")[0] ?? "there";
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
@@ -365,7 +363,7 @@ export default function AdminDashboardView({
   });
   const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
   const [isExportingPDF, setIsExportingPDF] = useState(false);
-
+  const router = useRouter();
   const [userid, setUserid] = useState<string | null>(null);
 
   useEffect(() => {
@@ -374,9 +372,7 @@ export default function AdminDashboardView({
         const token = sessionStorage.getItem("token");
         if (!token) return;
         const res = await axios.get(`${baseurl}/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         setUserid(res.data.id);
       } catch (err) {
@@ -385,6 +381,7 @@ export default function AdminDashboardView({
     };
     fetchUser();
   }, []);
+
   const exportPDF = async () => {
     setIsExportingPDF(true);
     try {
@@ -402,125 +399,118 @@ export default function AdminDashboardView({
       setIsExportingPDF(false);
     }
   };
+
   return (
     <>
-      <header className="sticky top-0 z-10 h-14 bg-background border-b border-border flex items-center px-4 gap-3 shrink-0">
-        <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+      <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur-sm">
+        <SidebarTrigger className="text-slate-400 hover:text-slate-900" />
         <Separator orientation="vertical" className="h-5" />
 
-        <div className="flex items-center gap-2 flex-1 max-w-sm">
-          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+        <div className="flex max-w-sm flex-1 items-center gap-2 rounded-lg border border-transparent px-2.5 py-1.5 transition-colors focus-within:border-slate-200 focus-within:bg-slate-50 hover:bg-slate-50">
+          <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
           <input
             type="text"
             placeholder="Search data..."
-            className="w-full text-sm text-foreground placeholder:text-muted-foreground bg-transparent outline-none"
+            className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 outline-none"
           />
         </div>
 
-        <div className="flex items-center gap-1 ml-auto">
-          <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-            <Bell className="w-4 h-4" />
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            className="relative flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            onClick={() => router.push("/admin/Reminders")}
+          >
+            <Bell className="h-4 w-4" />
+            <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rose-500" />
           </button>
-          <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-            <HelpCircle className="w-4 h-4" />
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            onClick={() => router.push("/admin/settings")}
+          >
+            <Settings className="h-4 w-4" />
           </button>
-          <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-            <Settings className="w-4 h-4" />
-          </button>
-          <Separator orientation="vertical" className="h-5 mx-2" />
+
+          <Separator orientation="vertical" className="mx-2 h-5" />
+
           <div className="flex items-center gap-2.5">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-semibold text-foreground leading-tight">
-                {username}
-              </p>
-              <p className="text-[10px] text-muted-foreground leading-tight">
-                Senior Account Executive
-              </p>
+            <div className="hidden text-right leading-tight sm:block">
+              <p className="text-xs font-semibold text-slate-900">{username}</p>
+              <p className="text-[10px] text-slate-400">Senior Account Executive</p>
             </div>
-            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white ring-2 ring-white">
               {useremail ? useremail.slice(0, 2).toUpperCase() : "AR"}
             </div>
           </div>
         </div>
       </header>
 
-      {/* ── Page content ── */}
-      <div className="p-6 space-y-5 bg-background min-h-[calc(100vh-3.5rem)]">
+      <div className="min-h-[calc(100vh-3.5rem)] space-y-6 bg-slate-50 p-6">
         {/* Heading */}
-        <div className="flex items-start justify-between flex-wrap gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-foreground">
+            <h1 className="text-[22px] font-semibold tracking-tight text-slate-900">
               Welcome back, {username} 👋
             </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className="mt-0.5 text-sm text-slate-500">
               {today} — here&apos;s how your pipeline is tracking.
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              id="report"
-              onClick={exportPDF}
-              disabled={isExportingPDF}
-              className="h-8 text-xs gap-1.5 border-rose-200 text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300 disabled:opacity-70 transition-colors flex-1 sm:flex-none"
-            >
-              {isExportingPDF ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <FileText className="w-3.5 h-3.5" />
-                  Export Report
-                </>
-              )}
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            id="report"
+            onClick={exportPDF}
+            disabled={isExportingPDF}
+            className="h-9 gap-1.5 border-slate-200 bg-white text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-70"
+          >
+            {isExportingPDF ? (
+              <>
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileText className="h-3.5 w-3.5" />
+                Export report
+              </>
+            )}
+          </Button>
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatCard
-            icon={Users}
-            label="Total Leads"
-            value={leadcount}
-            change="+12.5%"
-            accent="indigo"
-          />
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <StatCard icon={Users} label="Total leads" value={leadcount} change="+12.5%" accent="indigo" />
           <StatCard
             icon={TrendingUp}
-            label="Conversion Rate"
-            value="18.4%"
+            label="Conversion rate"
+            value={salesCards ? `${salesCards.conversionRate.value}${salesCards.conversionRate.unit}` : null}
             change="+3.2%"
             accent="emerald"
           />
           <StatCard
             icon={DollarSign}
-            label="Avg. Deal Value"
-            value="$12.4k"
+            label="Avg. deal value"
+            value={salesCards ? `${salesCards.averageDealValue.value}${salesCards.averageDealValue.unit}` : null}
             change="Stable"
             stable
             accent="amber"
           />
           <StatCard
             icon={BarChart3}
-            label="Projected Revenue"
-            value="$1.2M"
+            label="Projected revenue"
+            value={salesCards ? `${salesCards.projectedRevenue.value}${salesCards.projectedRevenue.unit}` : null}
             change="+2.4%"
             accent="violet"
           />
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+
+        {/* Chart + pipeline */}
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <div className="xl:col-span-2">
             <RevenueChart revenueVelocity={revenueVelocity} />
           </div>
-          <div>
-            <PipelineSnapshot leadPipelineData={leadPipelineData} />
-          </div>
+          <PipelineSnapshot leadPipelineData={leadPipelineData} />
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4"></div>
       </div>
     </>
   );

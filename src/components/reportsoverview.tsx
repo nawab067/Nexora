@@ -39,6 +39,7 @@ import {
   Mail,
   MessageSquare,
   TrendingUp,
+  TrendingDown,
   Target,
   Download,
   FileText,
@@ -149,19 +150,17 @@ interface ReportsPageProps {
 
 type StatusType = "NEW" | "CONTACTED" | "QUALIFIED" | "LOST" | "WON";
 const STATUS_STYLES: Record<StatusType, string> = {
-  NEW: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  CONTACTED:
-    "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  QUALIFIED:
-    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  LOST: "bg-rose-500/10 text-rose-500 dark:text-rose-400 border-rose-500/20",
-  WON: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+  NEW: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  CONTACTED: "bg-amber-50 text-amber-700 border-amber-200",
+  QUALIFIED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  LOST: "bg-rose-50 text-rose-600 border-rose-200",
+  WON: "bg-violet-50 text-violet-700 border-violet-200",
 };
 
 function StatusBadge({ status }: { status: string }) {
   const s = status.toUpperCase() as StatusType;
   const style =
-    STATUS_STYLES[s] ?? "bg-muted text-muted-foreground border-border";
+    STATUS_STYLES[s] ?? "bg-slate-100 text-slate-500 border-slate-200";
   return (
     <span
       className={cn(
@@ -175,8 +174,21 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Overview stat card
+   Overview stat card — matches the dashboard's StatCard: accent top bar,
+   tinted icon chip, tabular-nums headline value.
 ───────────────────────────────────────────────────────────────────────── */
+
+const ACCENTS: Record<
+  string,
+  { icon: string; bar: string }
+> = {
+  indigo: { icon: "bg-indigo-50 text-indigo-600", bar: "bg-indigo-500" },
+  emerald: { icon: "bg-emerald-50 text-emerald-600", bar: "bg-emerald-500" },
+  amber: { icon: "bg-amber-50 text-amber-600", bar: "bg-amber-500" },
+  violet: { icon: "bg-violet-50 text-violet-600", bar: "bg-violet-500" },
+  rose: { icon: "bg-rose-50 text-rose-600", bar: "bg-rose-500" },
+  blue: { icon: "bg-blue-50 text-blue-600", bar: "bg-blue-500" },
+};
 
 function OverviewCard({
   icon: Icon,
@@ -184,37 +196,47 @@ function OverviewCard({
   value,
   change,
   type,
+  accent = "indigo",
 }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
   change: string;
   type: "positive" | "negative";
+  accent?: keyof typeof ACCENTS;
 }) {
-  const ArrowIcon = type === "positive" ? ArrowUpRight : ArrowDownRight;
+  const TrendIcon = type === "positive" ? ArrowUpRight : TrendingDown;
   return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl">
+    <Card className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+      <span
+        className={cn("absolute inset-x-0 top-0 h-0.5", ACCENTS[accent].bar)}
+      />
       <CardContent className="p-4 sm:p-5">
-        <div className="flex items-start justify-between mb-3 sm:mb-4">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
+        <div className="flex items-start justify-between mb-3 sm:mb-5">
+          <div
+            className={cn(
+              "flex h-9 w-9 sm:h-9 sm:w-9 items-center justify-center rounded-lg",
+              ACCENTS[accent].icon,
+            )}
+          >
+            <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" strokeWidth={2} />
           </div>
           <span
             className={cn(
-              "flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap",
+              "flex items-center gap-0.5 text-[10px] sm:text-[11px] font-medium px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap",
               type === "positive"
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                : "bg-rose-500/10 text-rose-500 dark:text-rose-400",
+                ? "bg-emerald-50 text-emerald-600"
+                : "bg-rose-50 text-rose-600",
             )}
           >
-            <ArrowIcon className="w-3 h-3" />
+            <TrendIcon className="w-3 h-3" />
             {change}
           </span>
         </div>
-        <p className="text-xs sm:text-sm text-muted-foreground mb-1 truncate">
+        <p className="text-[12px] sm:text-[13px] font-medium text-slate-500 mb-1 truncate">
           {label}
         </p>
-        <p className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+        <p className="text-xl sm:text-[26px] font-semibold text-slate-900 tracking-tight tabular-nums">
           {value}
         </p>
       </CardContent>
@@ -263,16 +285,14 @@ function LeadAnalyticsChart({
   const chartData = normalizeMonthlyLeads(data ?? []);
 
   return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
-        <div className="flex flex-wrap items-center justify-between gap-1">
-          <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
-            Lead Analytics
-          </CardTitle>
-          <span className="text-xs text-muted-foreground font-medium">
-            Monthly Leads
-          </span>
-        </div>
+    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
+        <CardTitle className="text-[15px] font-semibold text-slate-900">
+          Lead Analytics
+        </CardTitle>
+        <span className="text-xs text-slate-500 font-medium">
+          Monthly Leads
+        </span>
       </CardHeader>
       <CardContent className="px-2 sm:px-5 pb-4 sm:pb-5">
         <ChartContainer config={leadChartConfig} className="h-40 w-full">
@@ -285,7 +305,7 @@ function LeadAnalyticsChart({
                 <stop
                   offset="0%"
                   stopColor="var(--color-leads)"
-                  stopOpacity={0.25}
+                  stopOpacity={0.24}
                 />
                 <stop
                   offset="100%"
@@ -294,16 +314,19 @@ function LeadAnalyticsChart({
                 />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <CartesianGrid vertical={false} stroke="#f1f5f9" />
             <XAxis
               dataKey="month"
               tickLine={false}
               axisLine={false}
-              tickMargin={8}
+              tickMargin={10}
               interval="preserveStartEnd"
-              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              tick={{ fontSize: 11, fill: "#94a3b8" }}
             />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+            <ChartTooltip
+              cursor={{ stroke: "#e2e8f0" }}
+              content={<ChartTooltipContent />}
+            />
             <Area
               dataKey="leads"
               type="monotone"
@@ -352,16 +375,14 @@ function RevenueTrendChart({
 }) {
   const chartData = normalizeMonthlyRevenue(data ?? []);
   return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
-        <div className="flex flex-wrap items-center justify-between gap-1">
-          <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
-            Revenue Trend
-          </CardTitle>
-          <span className="text-xs text-muted-foreground font-medium">
-            Monthly Revenue
-          </span>
-        </div>
+    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
+        <CardTitle className="text-[15px] font-semibold text-slate-900">
+          Revenue Trend
+        </CardTitle>
+        <span className="text-xs text-slate-500 font-medium">
+          Monthly Revenue
+        </span>
       </CardHeader>
       <CardContent className="px-2 sm:px-5 pb-4 sm:pb-5">
         <ChartContainer config={revenueChartConfig} className="h-40 w-full">
@@ -374,7 +395,7 @@ function RevenueTrendChart({
                 <stop
                   offset="0%"
                   stopColor="var(--color-revenue)"
-                  stopOpacity={0.25}
+                  stopOpacity={0.24}
                 />
                 <stop
                   offset="100%"
@@ -383,17 +404,17 @@ function RevenueTrendChart({
                 />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <CartesianGrid vertical={false} stroke="#f1f5f9" />
             <XAxis
               dataKey="month"
               tickLine={false}
               axisLine={false}
-              tickMargin={8}
+              tickMargin={10}
               interval="preserveStartEnd"
-              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              tick={{ fontSize: 11, fill: "#94a3b8" }}
             />
             <ChartTooltip
-              cursor={false}
+              cursor={{ stroke: "#e2e8f0" }}
               content={
                 <ChartTooltipContent
                   formatter={(value) => [
@@ -428,37 +449,37 @@ const stageColors: Record<string, string> = {
   New: "bg-indigo-600",
   Contacted: "bg-violet-500",
   Qualified: "bg-blue-500",
-  Lost: "bg-red-500",
-  Won: "bg-green-500",
+  Lost: "bg-rose-500",
+  Won: "bg-emerald-500",
 };
 
 function PipelineFunnel({ data }: { data: Analytics[] }) {
   return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
-        <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
+    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="flex-row items-center justify-between space-y-0 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
+        <CardTitle className="text-[15px] font-semibold text-slate-900">
           Pipeline
         </CardTitle>
+        <Target className="h-4 w-4 text-slate-400" />
       </CardHeader>
-      <CardContent className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-3">
+      <CardContent className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-3.5">
         {data.map((stage) => (
-          <div key={stage.label} className="flex items-center gap-2 sm:gap-3">
-            <span className="text-xs text-muted-foreground font-medium w-16 sm:w-20 shrink-0 truncate">
+          <div key={stage.label} className="flex items-center gap-3">
+            <span className="text-xs font-medium text-slate-500 w-16 sm:w-20 shrink-0 truncate">
               {stage.label}
             </span>
-            <div className="flex-1 h-7 bg-muted rounded-md overflow-hidden">
+            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
               <div
                 className={cn(
-                  "h-full rounded-md flex items-center justify-end px-2 transition-all",
-                  stageColors[stage.label],
+                  "h-full rounded-full transition-all",
+                  stageColors[stage.label] ?? "bg-slate-400",
                 )}
                 style={{ width: `${stage.percentage}%` }}
-              >
-                <span className="text-[10px] font-semibold text-white">
-                  {stage.count.toLocaleString()}
-                </span>
-              </div>
+              />
             </div>
+            <span className="w-8 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
+              {stage.count.toLocaleString()}
+            </span>
           </div>
         ))}
       </CardContent>
@@ -473,32 +494,30 @@ function PipelineFunnel({ data }: { data: Analytics[] }) {
 const emailChartConfig = {
   sent: { label: "Sent", color: "#4f46e5" },
   replies: { label: "Replies", color: "#10b981" },
-  ignored: { label: "Ignored", color: "#d1d5db" },
+  ignored: { label: "Ignored", color: "#cbd5e1" },
 } satisfies ChartConfig;
 
 function EmailAnalyticsChart({ data }: { data: EmailAnalytics[] }) {
   return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
-            Email Analytics
-          </CardTitle>
+    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
+        <CardTitle className="text-[15px] font-semibold text-slate-900">
+          Email Analytics
+        </CardTitle>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
-              Sent
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              Replies
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
-              Ignored
-            </span>
-          </div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
+            Sent
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            Replies
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+            Ignored
+          </span>
         </div>
       </CardHeader>
 
@@ -508,13 +527,13 @@ function EmailAnalyticsChart({ data }: { data: EmailAnalytics[] }) {
             data={data}
             margin={{ left: 0, right: 0, top: 8, bottom: 0 }}
           >
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <CartesianGrid vertical={false} stroke="#f1f5f9" />
             <XAxis
               dataKey="label"
               tickLine={false}
               axisLine={false}
-              tickMargin={8}
-              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              tickMargin={10}
+              tick={{ fontSize: 11, fill: "#94a3b8" }}
             />
             <YAxis
               allowDecimals={false}
@@ -522,10 +541,10 @@ function EmailAnalyticsChart({ data }: { data: EmailAnalytics[] }) {
               axisLine={false}
               tickMargin={8}
               width={24}
-              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              tick={{ fontSize: 11, fill: "#94a3b8" }}
             />
             <ChartTooltip
-              cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }}
+              cursor={{ fill: "#f8fafc" }}
               content={<ChartTooltipContent />}
             />
             <Bar
@@ -579,14 +598,12 @@ function PieChartCard({
   });
 
   return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
-        <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-          <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
-            {title}
-          </CardTitle>
-        </div>
+    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="flex-row items-center space-y-0 gap-2 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
+        <Icon className="w-4 h-4 text-indigo-600" />
+        <CardTitle className="text-[15px] font-semibold text-slate-900">
+          {title}
+        </CardTitle>
       </CardHeader>
       <CardContent className="px-4 sm:px-5 pb-4 sm:pb-5 flex flex-col xs:flex-row sm:flex-row items-center gap-4 sm:gap-5">
         <div
@@ -594,7 +611,7 @@ function PieChartCard({
           style={{ background: `conic-gradient(${gradientParts.join(", ")})` }}
         >
           <div className="w-full h-full flex items-center justify-center">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-card" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white" />
           </div>
         </div>
         <div className="space-y-2 flex-1 min-w-0 w-full">
@@ -604,10 +621,10 @@ function PieChartCard({
                 className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: d.color }}
               />
-              <span className="text-xs text-muted-foreground flex-1 truncate">
+              <span className="text-xs text-slate-500 flex-1 truncate">
                 {d.label}
               </span>
-              <span className="text-xs font-semibold text-foreground">
+              <span className="text-xs font-semibold text-slate-900 tabular-nums">
                 {d.value}%
               </span>
             </div>
@@ -631,38 +648,39 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
   }, [leads]);
 
   return (
-    <Card className="border-border/60 shadow-sm rounded-xl h-full overflow-hidden">
-      <CardHeader className="pb-4 px-4 sm:px-6 pt-5 border-b border-border/60 bg-muted/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-              <Users className="w-4 h-4 text-indigo-600" />
-            </div>
-            <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
-              Lead Status
-            </CardTitle>
+    <Card className="h-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="flex-row items-center justify-between space-y-0 px-4 sm:px-6 pb-4 pt-5 border-b border-slate-100 bg-slate-50/60">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+            <Users className="w-4 h-4 text-indigo-600" />
           </div>
-          <Badge variant="secondary" className="font-medium text-xs shrink-0">
-            {leads.length} {leads.length === 1 ? "lead" : "leads"}
-          </Badge>
+          <CardTitle className="text-[15px] font-semibold text-slate-900">
+            Lead Status
+          </CardTitle>
         </div>
+        <Badge
+          variant="secondary"
+          className="font-medium text-xs shrink-0 bg-slate-100 text-slate-600 hover:bg-slate-100"
+        >
+          {leads.length} {leads.length === 1 ? "lead" : "leads"}
+        </Badge>
       </CardHeader>
 
       <CardContent className="p-0">
         {sortedLeads.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
-            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
-              <Users className="w-5 h-5 text-muted-foreground" />
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+              <Users className="w-5 h-5 text-slate-400" />
             </div>
-            <p className="text-sm font-medium text-foreground">
+            <p className="text-sm font-medium text-slate-900">
               No leads found
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               New leads will appear here once added.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-border/60">
+          <div className="divide-y divide-slate-100">
             {sortedLeads.map((lead) => {
               const initials = lead.name
                 .split(" ")
@@ -677,7 +695,7 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
               return (
                 <div
                   key={lead.customerid}
-                  className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-6 py-3.5 hover:bg-muted/30 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-6 py-3.5 hover:bg-slate-50/80 transition-colors"
                 >
                   {/* Row 1 on mobile / left block on desktop: avatar, name, status */}
                   <div className="flex items-center gap-3 min-w-0 sm:flex-1">
@@ -688,22 +706,22 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
                             "text-xs font-semibold",
                             hasReplies
                               ? "bg-indigo-600 text-white"
-                              : "bg-muted text-muted-foreground",
+                              : "bg-slate-100 text-slate-500",
                           )}
                         >
                           {initials}
                         </AvatarFallback>
                       </Avatar>
                       {hasReplies && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                       )}
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-foreground leading-tight truncate">
+                      <p className="text-sm font-semibold text-slate-900 leading-tight truncate">
                         {lead.customer_name}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                      <p className="text-xs text-slate-500 mt-0.5 truncate">
                         {lead.name}
                       </p>
                     </div>
@@ -717,13 +735,11 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
                   {/* Row 2 on mobile / right block on desktop: replies, score, status */}
                   <div className="flex items-center justify-between gap-3 pl-12 sm:pl-0 sm:justify-end sm:gap-6">
                     <div className="flex items-center gap-1.5 sm:w-16 sm:justify-center shrink-0">
-                      <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                      <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
                       <span
                         className={cn(
-                          "text-sm font-semibold",
-                          hasReplies
-                            ? "text-foreground"
-                            : "text-muted-foreground",
+                          "text-sm font-semibold tabular-nums",
+                          hasReplies ? "text-slate-900" : "text-slate-400",
                         )}
                       >
                         {lead.replies ?? 0}
@@ -731,13 +747,13 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
                     </div>
 
                     <div className="flex items-center gap-2 flex-1 sm:flex-none sm:w-24">
-                      <div className="h-1.5 flex-1 sm:w-16 rounded-full bg-muted overflow-hidden">
+                      <div className="h-1.5 flex-1 sm:w-16 rounded-full bg-slate-100 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-amber-500"
                           style={{ width: `${Math.min(score, 100)}%` }}
                         />
                       </div>
-                      <span className="text-xs font-semibold text-foreground w-7 text-right shrink-0">
+                      <span className="text-xs font-semibold text-slate-900 tabular-nums w-7 text-right shrink-0">
                         {score}
                       </span>
                     </div>
@@ -761,18 +777,18 @@ function AIInsightsCard({ aiInsights }: { aiInsights: string }) {
   const [showFull, setShowFull] = useState(false);
 
   return (
-    <Card className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-900 dark:to-black border-0 shadow-lg rounded-xl text-white h-full">
+    <Card className="h-full rounded-xl border-0 bg-gradient-to-br from-slate-800 to-slate-900 text-white shadow-lg">
       <CardContent className="p-4 sm:p-5 flex flex-col h-full">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
               <Brain className="w-4 h-4 text-indigo-400" />
             </div>
-            <CardTitle className="text-sm sm:text-base font-semibold text-white">
+            <CardTitle className="text-[15px] font-semibold text-white">
               AI Insights
             </CardTitle>
           </div>
-          <Badge className="bg-indigo-500/15 text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/15">
+          <Badge className="bg-indigo-500/15 text-indigo-300 border border-indigo-500/20 hover:bg-indigo-500/15">
             <Sparkles className="w-3 h-3 mr-1" />
             AI Powered
           </Badge>
@@ -815,33 +831,31 @@ function AIRecommendationsCard({
   recommendations: string[];
 }) {
   return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-          </div>
-          <CardTitle className="text-sm sm:text-base font-semibold">
-            AI Recommendations
-          </CardTitle>
+    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="flex-row items-center space-y-0 gap-2 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
+        <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+          <Sparkles className="w-4 h-4 text-indigo-600" />
         </div>
+        <CardTitle className="text-[15px] font-semibold text-slate-900">
+          AI Recommendations
+        </CardTitle>
       </CardHeader>
 
       <CardContent className="px-3 sm:px-5 pb-4 sm:pb-5 space-y-1">
         {recommendations.map((recommendation, index) => (
           <div key={index}>
-            <div className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg transition-colors hover:bg-muted/60">
-              <div className="w-5 h-5 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+            <div className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg transition-colors hover:bg-slate-50">
+              <div className="w-5 h-5 rounded-full bg-indigo-50 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-[10px] font-bold text-indigo-600">
                   {index + 1}
                 </span>
               </div>
-              <p className="text-sm leading-snug text-foreground/90">
+              <p className="text-sm leading-snug text-slate-700">
                 {recommendation}
               </p>
             </div>
             {index < recommendations.length - 1 && (
-              <Separator className="opacity-50" />
+              <Separator className="bg-slate-100" />
             )}
           </div>
         ))}
@@ -855,48 +869,48 @@ function LeadPredictionCard({ prediction }: { prediction: AIPredictionType }) {
   const confidenceValue = parseFloat(prediction.confidence);
 
   return (
-    <Card className="bg-card border border-border shadow-sm rounded-xl h-full">
-      <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-            <Target className="w-4 h-4 text-emerald-600" />
-          </div>
-          <CardTitle className="text-sm sm:text-base font-semibold">
-            Lead Prediction
-          </CardTitle>
+    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="flex-row items-center space-y-0 gap-2 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
+        <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+          <Target className="w-4 h-4 text-emerald-600" />
         </div>
+        <CardTitle className="text-[15px] font-semibold text-slate-900">
+          Lead Prediction
+        </CardTitle>
       </CardHeader>
 
       <CardContent className="px-4 sm:px-5 pb-4 sm:pb-5">
         <div className="flex items-baseline gap-2 flex-wrap">
-          <p className="text-2xl sm:text-3xl font-bold tracking-tight">
+          <p className="text-2xl sm:text-[26px] font-semibold text-slate-900 tracking-tight tabular-nums">
             {prediction.predicted_leads}
           </p>
           <Badge
             variant="secondary"
-            className="bg-emerald-500/10 text-emerald-600 border-0"
+            className="bg-emerald-50 text-emerald-600 border-0 hover:bg-emerald-50"
           >
             <TrendingUp className="w-3 h-3 mr-1" />
             30d
           </Badge>
         </div>
 
-        <p className="text-xs text-muted-foreground mb-4">
+        <p className="text-xs text-slate-500 mb-4">
           projected new leads next 30 days
         </p>
 
         <div className="space-y-2">
           <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Model confidence</span>
-            <span className="font-medium">{prediction.confidence}</span>
+            <span className="text-slate-500">Model confidence</span>
+            <span className="font-medium text-slate-700">
+              {prediction.confidence}
+            </span>
           </div>
 
           <Progress
             value={confidenceValue}
-            className="h-2 [&>div]:bg-emerald-500"
+            className="h-2 bg-slate-100 [&>div]:bg-emerald-500"
           />
 
-          <p className="text-sm text-muted-foreground mt-3 leading-snug">
+          <p className="text-sm text-slate-500 mt-3 leading-snug">
             {prediction.prediction}
           </p>
 
@@ -909,7 +923,7 @@ function LeadPredictionCard({ prediction }: { prediction: AIPredictionType }) {
   );
 }
 /* ─────────────────────────────────────────────────────────────────────────
-   Recent Activity Timeline
+   Page
 ───────────────────────────────────────────────────────────────────────── */
 const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
 export default function ReportsPage({
@@ -986,6 +1000,7 @@ export default function ReportsPage({
       value: countleads.toString(),
       change: "+12.5%",
       type: "positive" as const,
+      accent: "indigo" as const,
     },
     {
       icon: UserCheck,
@@ -993,6 +1008,7 @@ export default function ReportsPage({
       value: countcustomer.toString(),
       change: "+8.1%",
       type: "positive" as const,
+      accent: "violet" as const,
     },
     {
       icon: Mail,
@@ -1000,6 +1016,7 @@ export default function ReportsPage({
       value: totalemailsent.toString(),
       change: "+3.4%",
       type: "positive" as const,
+      accent: "blue" as const,
     },
     {
       icon: MessageSquare,
@@ -1007,6 +1024,7 @@ export default function ReportsPage({
       value: totalreplies.toString(),
       change: "-2.2%",
       type: "negative" as const,
+      accent: "rose" as const,
     },
     {
       icon: TrendingUp,
@@ -1014,6 +1032,7 @@ export default function ReportsPage({
       value: conversionrate.toString(),
       change: "+1.8%",
       type: "positive" as const,
+      accent: "emerald" as const,
     },
     {
       icon: Target,
@@ -1021,6 +1040,7 @@ export default function ReportsPage({
       value: averagescore,
       change: "+4 pts",
       type: "positive" as const,
+      accent: "amber" as const,
     },
     // ── Revenue overview card (new, static — design only) ──
     {
@@ -1029,6 +1049,7 @@ export default function ReportsPage({
       value: RevenueCount.toString(),
       change: "+9.6%",
       type: "positive" as const,
+      accent: "emerald" as const,
     },
   ];
   const replySentiment = useMemo(() => {
@@ -1155,9 +1176,9 @@ export default function ReportsPage({
   return (
     <>
       {/* ── Navbar ── */}
-      <header className="sticky top-0 z-10 min-h-14 bg-background border-b border-border flex flex-wrap items-center px-2 sm:px-4 py-2 sm:py-0 gap-2 sm:gap-3 shrink-0">
+      <header className="sticky top-0 z-10 flex min-h-14 shrink-0 flex-wrap items-center gap-2 sm:gap-3 border-b border-slate-200 bg-white/80 px-2 py-2 backdrop-blur-sm sm:px-4 sm:py-0">
         <div className="flex items-center gap-2 shrink-0">
-          <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+          <SidebarTrigger className="text-slate-400 hover:text-slate-900" />
           <Separator orientation="vertical" className="h-5 hidden sm:block" />
         </div>
 
@@ -1166,7 +1187,7 @@ export default function ReportsPage({
           size="sm"
           onClick={onRefresh}
           disabled={refreshing}
-          className="h-8 text-xs gap-1.5 border-border text-muted-foreground hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 disabled:opacity-70 transition-colors shrink-0"
+          className="h-8 shrink-0 gap-1.5 border-slate-200 bg-white text-xs font-medium text-slate-600 shadow-sm hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-70 transition-colors"
         >
           <RefreshCw
             className={cn(
@@ -1179,30 +1200,33 @@ export default function ReportsPage({
           </span>
         </Button>
 
-        <div className="hidden md:flex items-center gap-2 flex-1 min-w-[120px] max-w-sm">
-          <Separator orientation="vertical" className="h-5" />
-          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+        <div className="hidden md:flex max-w-sm flex-1 min-w-[120px] items-center gap-2 rounded-lg border border-transparent px-2.5 py-1.5 transition-colors focus-within:border-slate-200 focus-within:bg-slate-50 hover:bg-slate-50">
+          <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <input
             type="text"
             placeholder="Search reports..."
-            className="w-full text-sm text-foreground placeholder:text-muted-foreground bg-transparent outline-none"
+            className="w-full text-sm text-slate-900 placeholder:text-slate-400 bg-transparent outline-none"
           />
         </div>
 
         <div className="flex items-center gap-1 ml-auto shrink-0">
-          <button className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          onClick={() => router.push("/admin/Reminders")}>
+          <button
+            className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            onClick={() => router.push("/admin/Reminders")}
+          >
             <Bell className="w-4 h-4" />
           </button>
-          <button className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          onClick={() => router.push("/admin/settings")}>
+          <button
+            className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            onClick={() => router.push("/admin/settings")}
+          >
             <Settings className="w-4 h-4" />
           </button>
           <Separator
             orientation="vertical"
             className="h-5 mx-2 hidden sm:block"
           />
-          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0 ring-2 ring-white">
             {username ? username.slice(0, 2).toUpperCase() : "U"}
           </div>
         </div>
@@ -1211,15 +1235,15 @@ export default function ReportsPage({
       {/* ── Page content ── */}
       <div
         ref={reportRef}
-        className="p-3 sm:p-6 space-y-4 sm:space-y-5 bg-background min-h-[calc(100vh-3.5rem)]"
+        className="min-h-[calc(100vh-3.5rem)] space-y-4 sm:space-y-6 bg-slate-50 p-3 sm:p-6"
       >
         {/* Heading */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-foreground">
+            <h1 className="text-lg sm:text-[22px] font-semibold tracking-tight text-slate-900">
               Reports
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
               Understand your sales performance with AI insights.
             </p>
           </div>
@@ -1230,7 +1254,7 @@ export default function ReportsPage({
               id="report"
               onClick={exportPDF}
               disabled={isExportingPDF}
-              className="h-8 text-xs gap-1.5 border-rose-200 text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300 disabled:opacity-70 transition-colors flex-1 sm:flex-none"
+              className="h-9 flex-1 sm:flex-none gap-1.5 border-slate-200 bg-white text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-70 transition-colors"
             >
               {isExportingPDF ? (
                 <>
@@ -1247,7 +1271,7 @@ export default function ReportsPage({
             <Button
               size="sm"
               onClick={exportExcel}
-              className="h-8 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white flex-1 sm:flex-none"
+              className="h-9 flex-1 sm:flex-none gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               Export Excel
@@ -1262,7 +1286,7 @@ export default function ReportsPage({
           ))}
         </div>
 
-        {/* ── Revenue Analytics section (new, static design-only) ── */}
+        {/* ── Revenue Analytics section ── */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">
           <div className="xl:col-span-2">
             <RevenueTrendChart data={revenueTrend} />

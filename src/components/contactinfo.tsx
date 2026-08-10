@@ -512,7 +512,7 @@ const baseurl= process.env.NEXT_PUBLIC_BASE_URL
             <div className="relative flex-1 min-w-[140px] sm:flex-none">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Search leads…"
+                placeholder="Search customers…"
                 value={search}
                 onChange={(e) => onSearchChange(e.target.value)}
                 className="pl-8 h-9 w-full sm:w-56 text-sm rounded-lg bg-muted border-border focus-visible:ring-1"

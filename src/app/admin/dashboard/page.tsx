@@ -6,6 +6,20 @@ import axios from "axios";
 import AdminDashboardView from "@/components/dashboardview";
 
 
+interface SalesCards {
+  conversionRate: {
+    value: number;
+    unit: string;
+  };
+  averageDealValue: {
+    value: number;
+    unit: string;
+  };
+  projectedRevenue: {
+    value: number;
+    unit: string;
+  };
+}
 interface RevenueChartItem {
   day: string;
   this_week: number;
@@ -32,6 +46,7 @@ export default function AdminDashboardContainer() {
   const [useremail, setUseremail] = useState<string | null>(null);
   const [leadcount, setleadcount] = useState<string | null>(null);
 const [userid, setUserid] = useState<string | null>(null);
+  const [salesCards, setSalesCards] = useState<SalesCards | null>(null);
 const [revenueVelocity, setRevenueVelocity] =
   useState<RevenueVelocity | null>(null);
   const [leadPipelineData, setLeadPipelineData] = useState<LeadPipeline[] | null>(null);
@@ -116,6 +131,17 @@ const [revenueVelocity, setRevenueVelocity] =
       console.error("Error fetching username");
     }
   }
+
+  const fetch_stats_cards= async()=>{
+    try{
+       const response = await axios.get(`${baseurl}/get-invoice-status-count/${userid}`);
+       setSalesCards(response.data.data);
+       console.log(response.data);
+
+    }catch(error){
+      console.error("Error fetching stats cards");
+    }
+  }
   useEffect(()=>{
     if(!userid){
       return;
@@ -123,6 +149,7 @@ const [revenueVelocity, setRevenueVelocity] =
     fetch_revenue_velocity();
     leadPipeline();
     fetchUsername();
+    fetch_stats_cards();
   },[userid]);
 
 
@@ -143,6 +170,7 @@ const [revenueVelocity, setRevenueVelocity] =
       leadcount={leadcount}
       revenueVelocity={revenueVelocity}
       leadPipelineData={leadPipelineData}
+      salesCards={salesCards}
     />
   );
 }

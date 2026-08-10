@@ -5,11 +5,8 @@ import {
     Trash2,
     Mail,
     Clock,
-    Bell,
-    HelpCircle,
     Settings,
     Search,
-    RefreshCw,
     Inbox,
     AlertTriangle,
     X,
@@ -53,12 +50,24 @@ export interface EmailReply {
 }
 
 interface RemindersViewProps {
-    reminders?: EmailReply[];
-    loading?: boolean;
-    onSync?: () => void;
-    onReplyClick?: (reply: EmailReply) => void;
-    onDeleted?: (id: string) => void; // single delete
-    onBulkDeleted?: (ids: string[]) => void; // bulk delete
+    reminders: EmailReply[];
+    loading: boolean;
+    syncing?: boolean;
+    newRepliesCount?: number;
+
+    onSync: () => void;
+
+    onReplyClick: (
+        reply: EmailReply
+    ) => void;
+
+    onDeleted: (
+        id: string
+    ) => void;
+
+    onBulkDeleted: (
+        ids: string[]
+    ) => void;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -67,11 +76,11 @@ function getInitials(email: string) {
 }
 
 const AVATAR_COLORS = [
-    { bg: "bg-blue-500/15", text: "text-blue-600 dark:text-blue-400" },
     { bg: "bg-indigo-500/15", text: "text-indigo-600 dark:text-indigo-400" },
-    { bg: "bg-emerald-500/15", text: "text-emerald-600 dark:text-emerald-400" },
-    { bg: "bg-amber-500/15", text: "text-amber-600 dark:text-amber-400" },
-    { bg: "bg-rose-500/15", text: "text-rose-600 dark:text-rose-400" },
+    { bg: "bg-violet-500/15", text: "text-violet-600 dark:text-violet-400" },
+    { bg: "bg-blue-500/15", text: "text-blue-600 dark:text-blue-400" },
+    { bg: "bg-fuchsia-500/15", text: "text-fuchsia-600 dark:text-fuchsia-400" },
+    { bg: "bg-purple-500/15", text: "text-purple-600 dark:text-purple-400" },
 ];
 
 function hashString(str: string) {
@@ -119,6 +128,7 @@ function ReminderRow({
     onLongPress: () => void;
     onToggleSelect: () => void;
     onQuickDelete: () => void;
+    syncing?: boolean;
 }) {
     const color = AVATAR_COLORS[hashString(reply.customer_email) % AVATAR_COLORS.length];
     const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -181,7 +191,7 @@ function ReminderRow({
                     checked={selected}
                     onCheckedChange={() => onToggleSelect()}
                     onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                    className="h-4 w-4"
+                    className="h-4 w-4 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
                 />
             </div>
 
@@ -209,16 +219,19 @@ function ReminderRow({
                         <span className="text-[11px] text-muted-foreground whitespace-nowrap">
                             {timeAgo(reply.received_at)}
                         </span>
-                        <button
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onQuickDelete();
                             }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10"
                             title="Delete"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        </Button>
                     </span>
                 </div>
                 <p
@@ -271,19 +284,16 @@ export default function RemindersView({
     onReplyClick,
     onDeleted,
     onBulkDeleted,
+    syncing
 }: RemindersViewProps) {
     const isDisconnected = reminders === undefined;
     const safeReminders = reminders ?? [];
     const baseurl = process.env.NEXT_PUBLIC_BASE_URL;
-
     const [selectedReply, setSelectedReply] = useState<EmailReply | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<EmailReply | null>(null);
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
-
     const [filter, setFilter] = useState<"all" | "unread">("all");
-
-    // ── Multi-select state ──
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
@@ -323,51 +333,51 @@ export default function RemindersView({
         setDeleteTarget(reply);
         setDeleteConfirmOpen(true);
     };
-     const [userid, setUserid] = useState<string | null>(null);
-  const [username, setUsername] = useState<string | null>(null);
+    const [userid, setUserid] = useState<string | null>(null);
+    const [username, setUsername] = useState<string | null>(null);
 
-  const router = useRouter();
+    const router = useRouter();
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const token = sessionStorage.getItem("token");
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const token = sessionStorage.getItem("token");
 
-        if (!token) return;
+                if (!token) return;
 
-        const res = await axios.get(`${baseurl}/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+                const res = await axios.get(`${baseurl}/me`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
 
-        setUserid(res.data.id);
-        
-      } catch (err) {
-        console.error(err);
-      }
+                setUserid(res.data.id);
+
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        fetchUser();
+    }, []);
+
+    const handleshowUsername = async () => {
+        try {
+            const respoonse = await axios.get(`${baseurl}/admin/users/${userid}`);
+
+            console.log("API Response:", respoonse.data);
+            console.log("Type:", typeof respoonse.data);
+            setUsername(respoonse.data);
+        } catch (err) {
+            console.error(err);
+        }
     };
-
-    fetchUser();
-  }, []);
-
-  const handleshowUsername = async () => {
-    try {
-      const respoonse = await axios.get(`${baseurl}/admin/users/${userid}`);
-      
-    console.log("API Response:", respoonse.data);
-    console.log("Type:", typeof respoonse.data);
-      setUsername(respoonse.data);     
-    } catch (err) {
-      console.error(err);
-    }
-  };
-  useEffect(() => {
-    if(!userid){
-      return;
-    }
-    handleshowUsername();
-  }, [userid])  
+    useEffect(() => {
+        if (!userid) {
+            return;
+        }
+        handleshowUsername();
+    }, [userid])
 
     const handleDelete = async () => {
         if (!deleteTarget) return;
@@ -422,18 +432,21 @@ export default function RemindersView({
             <header className="sticky top-0 z-10 h-14 bg-background border-b border-border flex items-center px-4 gap-3 shrink-0">
                 {selectionMode ? (
                     <>
-                        <button
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
                             onClick={exitSelectionMode}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
                         >
                             <X className="w-4 h-4" />
-                        </button>
+                        </Button>
                         <span className="text-sm font-semibold text-foreground">{selectedIds.size} selected</span>
                         <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => setSelectedIds(new Set(visibleReminders.map((r) => r._id)))}
-                            className="h-8 text-xs gap-1.5 text-muted-foreground"
+                            className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-indigo-600"
                         >
                             <CheckSquare className="w-3.5 h-3.5" />
                             Select all
@@ -464,12 +477,15 @@ export default function RemindersView({
                             />
                         </div>
                         <div className="flex items-center gap-1 ml-auto">
-                            
-                            
-                            <button className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                            onClick={() => router.push("/admin/settings")}>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => router.push("/admin/settings")}
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            >
                                 <Settings className="w-4 h-4" />
-                            </button>
+                            </Button>
                             <Separator orientation="vertical" className="h-5 mx-2" />
                             <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                                 {username ? username.slice(0, 2).toUpperCase() : "U"}
@@ -489,13 +505,11 @@ export default function RemindersView({
                         </p>
                     </div>
                     <Button
-                        size="sm"
                         onClick={onSync}
-                        disabled={loading || !onSync}
-                        className="h-9 text-sm gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 disabled:opacity-70"
+                        disabled={syncing}
+                        className="h-9 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm"
                     >
-                        <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-                        {loading ? "Syncing..." : "Sync"}
+                        {syncing ? "Syncing..." : "Sync Emails"}
                     </Button>
                 </div>
 
@@ -521,8 +535,8 @@ export default function RemindersView({
                                     {loading ? "—" : unreadCount}
                                 </p>
                             </div>
-                            <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                                <MailOpen className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400" />
+                            <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                                <MailOpen className="w-4.5 h-4.5 text-violet-600 dark:text-violet-400" />
                             </div>
                         </CardContent>
                     </Card>
@@ -541,11 +555,17 @@ export default function RemindersView({
                     >
                         <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
                             <Tabs value={filter} onValueChange={(v) => setFilter(v as "all" | "unread")}>
-                                <TabsList className="h-8">
-                                    <TabsTrigger value="all" className="text-xs px-3 h-6">
+                                <TabsList className="h-8 bg-muted/60">
+                                    <TabsTrigger
+                                        value="all"
+                                        className="text-xs px-3 h-6 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+                                    >
                                         All
                                     </TabsTrigger>
-                                    <TabsTrigger value="unread" className="text-xs px-3 h-6">
+                                    <TabsTrigger
+                                        value="unread"
+                                        className="text-xs px-3 h-6 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+                                    >
                                         Unread{unreadCount > 0 ? ` (${unreadCount})` : ""}
                                     </TabsTrigger>
                                 </TabsList>
@@ -612,12 +632,15 @@ export default function RemindersView({
                         {selectedReply && selectedColor && (
                             <>
                                 <div className="flex items-start gap-3 px-6 py-5 border-b border-border shrink-0">
-                                    <button
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
                                         onClick={() => setSelectedReply(null)}
-                                        className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 -ml-1"
+                                        className="lg:hidden h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 -ml-1"
                                     >
                                         <ArrowLeft className="w-4 h-4" />
-                                    </button>
+                                    </Button>
 
                                     <div
                                         className={cn(
@@ -676,15 +699,19 @@ export default function RemindersView({
                                 </div>
 
                                 <div className="px-6 py-4 border-t border-border flex justify-end gap-2 shrink-0">
-                                    <a
-                                        href={`mailto:${selectedReply.customer_email}?subject=${encodeURIComponent(
-                                            `Re: ${selectedReply.subject}`
-                                        )}`}
-                                        className="flex items-center gap-1.5 h-9 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4"
+                                    <Button
+                                        asChild
+                                        className="h-9 text-sm gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-4"
                                     >
-                                        <Reply className="w-4 h-4" />
-                                        Reply
-                                    </a>
+                                        <a
+                                            href={`mailto:${selectedReply.customer_email}?subject=${encodeURIComponent(
+                                                `Re: ${selectedReply.subject}`
+                                            )}`}
+                                        >
+                                            <Reply className="w-4 h-4" />
+                                            Reply
+                                        </a>
+                                    </Button>
                                 </div>
                             </>
                         )}
