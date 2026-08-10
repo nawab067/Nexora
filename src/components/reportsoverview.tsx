@@ -150,17 +150,20 @@ interface ReportsPageProps {
 
 type StatusType = "NEW" | "CONTACTED" | "QUALIFIED" | "LOST" | "WON";
 const STATUS_STYLES: Record<StatusType, string> = {
-  NEW: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  CONTACTED: "bg-amber-50 text-amber-700 border-amber-200",
-  QUALIFIED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  LOST: "bg-rose-50 text-rose-600 border-rose-200",
-  WON: "bg-violet-50 text-violet-700 border-violet-200",
+  NEW: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20",
+  CONTACTED:
+    "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
+  QUALIFIED:
+    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
+  LOST: "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20",
+  WON: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20",
 };
 
 function StatusBadge({ status }: { status: string }) {
   const s = status.toUpperCase() as StatusType;
   const style =
-    STATUS_STYLES[s] ?? "bg-slate-100 text-slate-500 border-slate-200";
+    STATUS_STYLES[s] ??
+    "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
   return (
     <span
       className={cn(
@@ -178,16 +181,31 @@ function StatusBadge({ status }: { status: string }) {
    tinted icon chip, tabular-nums headline value.
 ───────────────────────────────────────────────────────────────────────── */
 
-const ACCENTS: Record<
-  string,
-  { icon: string; bar: string }
-> = {
-  indigo: { icon: "bg-indigo-50 text-indigo-600", bar: "bg-indigo-500" },
-  emerald: { icon: "bg-emerald-50 text-emerald-600", bar: "bg-emerald-500" },
-  amber: { icon: "bg-amber-50 text-amber-600", bar: "bg-amber-500" },
-  violet: { icon: "bg-violet-50 text-violet-600", bar: "bg-violet-500" },
-  rose: { icon: "bg-rose-50 text-rose-600", bar: "bg-rose-500" },
-  blue: { icon: "bg-blue-50 text-blue-600", bar: "bg-blue-500" },
+const ACCENTS: Record<string, { icon: string; bar: string }> = {
+  indigo: {
+    icon: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400",
+    bar: "bg-indigo-500",
+  },
+  emerald: {
+    icon: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400",
+    bar: "bg-emerald-500",
+  },
+  amber: {
+    icon: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
+    bar: "bg-amber-500",
+  },
+  violet: {
+    icon: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400",
+    bar: "bg-violet-500",
+  },
+  rose: {
+    icon: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400",
+    bar: "bg-rose-500",
+  },
+  blue: {
+    icon: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
+    bar: "bg-blue-500",
+  },
 };
 
 function OverviewCard({
@@ -207,7 +225,7 @@ function OverviewCard({
 }) {
   const TrendIcon = type === "positive" ? ArrowUpRight : TrendingDown;
   return (
-    <Card className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <Card className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md dark:hover:shadow-black/20">
       <span
         className={cn("absolute inset-x-0 top-0 h-0.5", ACCENTS[accent].bar)}
       />
@@ -225,18 +243,18 @@ function OverviewCard({
             className={cn(
               "flex items-center gap-0.5 text-[10px] sm:text-[11px] font-medium px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap",
               type === "positive"
-                ? "bg-emerald-50 text-emerald-600"
-                : "bg-rose-50 text-rose-600",
+                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                : "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400",
             )}
           >
             <TrendIcon className="w-3 h-3" />
             {change}
           </span>
         </div>
-        <p className="text-[12px] sm:text-[13px] font-medium text-slate-500 mb-1 truncate">
+        <p className="text-[12px] sm:text-[13px] font-medium text-muted-foreground mb-1 truncate">
           {label}
         </p>
-        <p className="text-xl sm:text-[26px] font-semibold text-slate-900 tracking-tight tabular-nums">
+        <p className="text-xl sm:text-[26px] font-semibold text-card-foreground tracking-tight tabular-nums">
           {value}
         </p>
       </CardContent>
@@ -285,12 +303,12 @@ function LeadAnalyticsChart({
   const chartData = normalizeMonthlyLeads(data ?? []);
 
   return (
-    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+    <Card className="h-full rounded-xl border border-border bg-card shadow-sm">
       <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
-        <CardTitle className="text-[15px] font-semibold text-slate-900">
+        <CardTitle className="text-[15px] font-semibold text-card-foreground">
           Lead Analytics
         </CardTitle>
-        <span className="text-xs text-slate-500 font-medium">
+        <span className="text-xs text-muted-foreground font-medium">
           Monthly Leads
         </span>
       </CardHeader>
@@ -314,17 +332,17 @@ function LeadAnalyticsChart({
                 />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} stroke="#f1f5f9" />
+            <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
             <XAxis
               dataKey="month"
               tickLine={false}
               axisLine={false}
               tickMargin={10}
               interval="preserveStartEnd"
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
             />
             <ChartTooltip
-              cursor={{ stroke: "#e2e8f0" }}
+              cursor={{ stroke: "hsl(var(--border))" }}
               content={<ChartTooltipContent />}
             />
             <Area
@@ -336,7 +354,7 @@ function LeadAnalyticsChart({
               dot={{
                 r: 3,
                 fill: "var(--color-leads)",
-                stroke: "white",
+                stroke: "hsl(var(--card))",
                 strokeWidth: 1.5,
               }}
               activeDot={{ r: 5 }}
@@ -375,12 +393,12 @@ function RevenueTrendChart({
 }) {
   const chartData = normalizeMonthlyRevenue(data ?? []);
   return (
-    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+    <Card className="h-full rounded-xl border border-border bg-card shadow-sm">
       <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
-        <CardTitle className="text-[15px] font-semibold text-slate-900">
+        <CardTitle className="text-[15px] font-semibold text-card-foreground">
           Revenue Trend
         </CardTitle>
-        <span className="text-xs text-slate-500 font-medium">
+        <span className="text-xs text-muted-foreground font-medium">
           Monthly Revenue
         </span>
       </CardHeader>
@@ -404,17 +422,17 @@ function RevenueTrendChart({
                 />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} stroke="#f1f5f9" />
+            <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
             <XAxis
               dataKey="month"
               tickLine={false}
               axisLine={false}
               tickMargin={10}
               interval="preserveStartEnd"
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
             />
             <ChartTooltip
-              cursor={{ stroke: "#e2e8f0" }}
+              cursor={{ stroke: "hsl(var(--border))" }}
               content={
                 <ChartTooltipContent
                   formatter={(value) => [
@@ -433,7 +451,7 @@ function RevenueTrendChart({
               dot={{
                 r: 3,
                 fill: "var(--color-revenue)",
-                stroke: "white",
+                stroke: "hsl(var(--card))",
                 strokeWidth: 1.5,
               }}
               activeDot={{ r: 5 }}
@@ -455,20 +473,20 @@ const stageColors: Record<string, string> = {
 
 function PipelineFunnel({ data }: { data: Analytics[] }) {
   return (
-    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+    <Card className="h-full rounded-xl border border-border bg-card shadow-sm">
       <CardHeader className="flex-row items-center justify-between space-y-0 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
-        <CardTitle className="text-[15px] font-semibold text-slate-900">
+        <CardTitle className="text-[15px] font-semibold text-card-foreground">
           Pipeline
         </CardTitle>
-        <Target className="h-4 w-4 text-slate-400" />
+        <Target className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-3.5">
         {data.map((stage) => (
           <div key={stage.label} className="flex items-center gap-3">
-            <span className="text-xs font-medium text-slate-500 w-16 sm:w-20 shrink-0 truncate">
+            <span className="text-xs font-medium text-muted-foreground w-16 sm:w-20 shrink-0 truncate">
               {stage.label}
             </span>
-            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className={cn(
                   "h-full rounded-full transition-all",
@@ -477,7 +495,7 @@ function PipelineFunnel({ data }: { data: Analytics[] }) {
                 style={{ width: `${stage.percentage}%` }}
               />
             </div>
-            <span className="w-8 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
+            <span className="w-8 shrink-0 text-right text-xs font-semibold tabular-nums text-card-foreground">
               {stage.count.toLocaleString()}
             </span>
           </div>
@@ -494,18 +512,18 @@ function PipelineFunnel({ data }: { data: Analytics[] }) {
 const emailChartConfig = {
   sent: { label: "Sent", color: "#4f46e5" },
   replies: { label: "Replies", color: "#10b981" },
-  ignored: { label: "Ignored", color: "#cbd5e1" },
+  ignored: { label: "Ignored", color: "#94a3b8" },
 } satisfies ChartConfig;
 
 function EmailAnalyticsChart({ data }: { data: EmailAnalytics[] }) {
   return (
-    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+    <Card className="h-full rounded-xl border border-border bg-card shadow-sm">
       <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
-        <CardTitle className="text-[15px] font-semibold text-slate-900">
+        <CardTitle className="text-[15px] font-semibold text-card-foreground">
           Email Analytics
         </CardTitle>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
             Sent
@@ -515,7 +533,7 @@ function EmailAnalyticsChart({ data }: { data: EmailAnalytics[] }) {
             Replies
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
             Ignored
           </span>
         </div>
@@ -527,13 +545,13 @@ function EmailAnalyticsChart({ data }: { data: EmailAnalytics[] }) {
             data={data}
             margin={{ left: 0, right: 0, top: 8, bottom: 0 }}
           >
-            <CartesianGrid vertical={false} stroke="#f1f5f9" />
+            <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
             <XAxis
               dataKey="label"
               tickLine={false}
               axisLine={false}
               tickMargin={10}
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
             />
             <YAxis
               allowDecimals={false}
@@ -541,10 +559,10 @@ function EmailAnalyticsChart({ data }: { data: EmailAnalytics[] }) {
               axisLine={false}
               tickMargin={8}
               width={24}
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
             />
             <ChartTooltip
-              cursor={{ fill: "#f8fafc" }}
+              cursor={{ fill: "hsl(var(--muted))" }}
               content={<ChartTooltipContent />}
             />
             <Bar
@@ -598,10 +616,10 @@ function PieChartCard({
   });
 
   return (
-    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+    <Card className="h-full rounded-xl border border-border bg-card shadow-sm">
       <CardHeader className="flex-row items-center space-y-0 gap-2 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
-        <Icon className="w-4 h-4 text-indigo-600" />
-        <CardTitle className="text-[15px] font-semibold text-slate-900">
+        <Icon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+        <CardTitle className="text-[15px] font-semibold text-card-foreground">
           {title}
         </CardTitle>
       </CardHeader>
@@ -611,7 +629,7 @@ function PieChartCard({
           style={{ background: `conic-gradient(${gradientParts.join(", ")})` }}
         >
           <div className="w-full h-full flex items-center justify-center">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-card" />
           </div>
         </div>
         <div className="space-y-2 flex-1 min-w-0 w-full">
@@ -621,10 +639,10 @@ function PieChartCard({
                 className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: d.color }}
               />
-              <span className="text-xs text-slate-500 flex-1 truncate">
+              <span className="text-xs text-muted-foreground flex-1 truncate">
                 {d.label}
               </span>
-              <span className="text-xs font-semibold text-slate-900 tabular-nums">
+              <span className="text-xs font-semibold text-card-foreground tabular-nums">
                 {d.value}%
               </span>
             </div>
@@ -648,19 +666,19 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
   }, [leads]);
 
   return (
-    <Card className="h-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <CardHeader className="flex-row items-center justify-between space-y-0 px-4 sm:px-6 pb-4 pt-5 border-b border-slate-100 bg-slate-50/60">
+    <Card className="h-full overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <CardHeader className="flex-row items-center justify-between space-y-0 px-4 sm:px-6 pb-4 pt-5 border-b border-border bg-muted/40">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-            <Users className="w-4 h-4 text-indigo-600" />
+          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center shrink-0">
+            <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <CardTitle className="text-[15px] font-semibold text-slate-900">
+          <CardTitle className="text-[15px] font-semibold text-card-foreground">
             Lead Status
           </CardTitle>
         </div>
         <Badge
           variant="secondary"
-          className="font-medium text-xs shrink-0 bg-slate-100 text-slate-600 hover:bg-slate-100"
+          className="font-medium text-xs shrink-0 bg-muted text-muted-foreground hover:bg-muted"
         >
           {leads.length} {leads.length === 1 ? "lead" : "leads"}
         </Badge>
@@ -669,18 +687,18 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
       <CardContent className="p-0">
         {sortedLeads.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
-            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-3">
-              <Users className="w-5 h-5 text-slate-400" />
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
+              <Users className="w-5 h-5 text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium text-slate-900">
+            <p className="text-sm font-medium text-card-foreground">
               No leads found
             </p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               New leads will appear here once added.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-border">
             {sortedLeads.map((lead) => {
               const initials = lead.name
                 .split(" ")
@@ -695,7 +713,7 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
               return (
                 <div
                   key={lead.customerid}
-                  className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-6 py-3.5 hover:bg-slate-50/80 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-6 py-3.5 hover:bg-muted/50 transition-colors"
                 >
                   {/* Row 1 on mobile / left block on desktop: avatar, name, status */}
                   <div className="flex items-center gap-3 min-w-0 sm:flex-1">
@@ -706,22 +724,22 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
                             "text-xs font-semibold",
                             hasReplies
                               ? "bg-indigo-600 text-white"
-                              : "bg-slate-100 text-slate-500",
+                              : "bg-muted text-muted-foreground",
                           )}
                         >
                           {initials}
                         </AvatarFallback>
                       </Avatar>
                       {hasReplies && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />
                       )}
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900 leading-tight truncate">
+                      <p className="text-sm font-semibold text-card-foreground leading-tight truncate">
                         {lead.customer_name}
                       </p>
-                      <p className="text-xs text-slate-500 mt-0.5 truncate">
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
                         {lead.name}
                       </p>
                     </div>
@@ -735,11 +753,11 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
                   {/* Row 2 on mobile / right block on desktop: replies, score, status */}
                   <div className="flex items-center justify-between gap-3 pl-12 sm:pl-0 sm:justify-end sm:gap-6">
                     <div className="flex items-center gap-1.5 sm:w-16 sm:justify-center shrink-0">
-                      <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+                      <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
                       <span
                         className={cn(
                           "text-sm font-semibold tabular-nums",
-                          hasReplies ? "text-slate-900" : "text-slate-400",
+                          hasReplies ? "text-card-foreground" : "text-muted-foreground",
                         )}
                       >
                         {lead.replies ?? 0}
@@ -747,13 +765,13 @@ function TopPerformingLeads({ leads }: { leads: LeadData[] }) {
                     </div>
 
                     <div className="flex items-center gap-2 flex-1 sm:flex-none sm:w-24">
-                      <div className="h-1.5 flex-1 sm:w-16 rounded-full bg-slate-100 overflow-hidden">
+                      <div className="h-1.5 flex-1 sm:w-16 rounded-full bg-muted overflow-hidden">
                         <div
                           className="h-full rounded-full bg-amber-500"
                           style={{ width: `${Math.min(score, 100)}%` }}
                         />
                       </div>
-                      <span className="text-xs font-semibold text-slate-900 tabular-nums w-7 text-right shrink-0">
+                      <span className="text-xs font-semibold text-card-foreground tabular-nums w-7 text-right shrink-0">
                         {score}
                       </span>
                     </div>
@@ -777,7 +795,7 @@ function AIInsightsCard({ aiInsights }: { aiInsights: string }) {
   const [showFull, setShowFull] = useState(false);
 
   return (
-    <Card className="h-full rounded-xl border-0 bg-gradient-to-br from-slate-800 to-slate-900 text-white shadow-lg">
+    <Card className="h-full rounded-xl border-0 bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-900 dark:to-black text-white shadow-lg">
       <CardContent className="p-4 sm:p-5 flex flex-col h-full">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -831,12 +849,12 @@ function AIRecommendationsCard({
   recommendations: string[];
 }) {
   return (
-    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+    <Card className="h-full rounded-xl border border-border bg-card shadow-sm">
       <CardHeader className="flex-row items-center space-y-0 gap-2 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
-        <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-          <Sparkles className="w-4 h-4 text-indigo-600" />
+        <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center shrink-0">
+          <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
         </div>
-        <CardTitle className="text-[15px] font-semibold text-slate-900">
+        <CardTitle className="text-[15px] font-semibold text-card-foreground">
           AI Recommendations
         </CardTitle>
       </CardHeader>
@@ -844,18 +862,18 @@ function AIRecommendationsCard({
       <CardContent className="px-3 sm:px-5 pb-4 sm:pb-5 space-y-1">
         {recommendations.map((recommendation, index) => (
           <div key={index}>
-            <div className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg transition-colors hover:bg-slate-50">
-              <div className="w-5 h-5 rounded-full bg-indigo-50 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[10px] font-bold text-indigo-600">
+            <div className="flex items-start gap-3 py-2.5 px-2 -mx-2 rounded-lg transition-colors hover:bg-muted/50">
+              <div className="w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
                   {index + 1}
                 </span>
               </div>
-              <p className="text-sm leading-snug text-slate-700">
+              <p className="text-sm leading-snug text-card-foreground/90">
                 {recommendation}
               </p>
             </div>
             {index < recommendations.length - 1 && (
-              <Separator className="bg-slate-100" />
+              <Separator className="bg-border" />
             )}
           </div>
         ))}
@@ -869,52 +887,52 @@ function LeadPredictionCard({ prediction }: { prediction: AIPredictionType }) {
   const confidenceValue = parseFloat(prediction.confidence);
 
   return (
-    <Card className="h-full rounded-xl border border-slate-200 bg-white shadow-sm">
+    <Card className="h-full rounded-xl border border-border bg-card shadow-sm">
       <CardHeader className="flex-row items-center space-y-0 gap-2 px-4 sm:px-5 pb-2 pt-4 sm:pt-5">
-        <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-          <Target className="w-4 h-4 text-emerald-600" />
+        <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center shrink-0">
+          <Target className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
         </div>
-        <CardTitle className="text-[15px] font-semibold text-slate-900">
+        <CardTitle className="text-[15px] font-semibold text-card-foreground">
           Lead Prediction
         </CardTitle>
       </CardHeader>
 
       <CardContent className="px-4 sm:px-5 pb-4 sm:pb-5">
         <div className="flex items-baseline gap-2 flex-wrap">
-          <p className="text-2xl sm:text-[26px] font-semibold text-slate-900 tracking-tight tabular-nums">
+          <p className="text-2xl sm:text-[26px] font-semibold text-card-foreground tracking-tight tabular-nums">
             {prediction.predicted_leads}
           </p>
           <Badge
             variant="secondary"
-            className="bg-emerald-50 text-emerald-600 border-0 hover:bg-emerald-50"
+            className="bg-emerald-50 text-emerald-600 border-0 hover:bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
           >
             <TrendingUp className="w-3 h-3 mr-1" />
             30d
           </Badge>
         </div>
 
-        <p className="text-xs text-slate-500 mb-4">
+        <p className="text-xs text-muted-foreground mb-4">
           projected new leads next 30 days
         </p>
 
         <div className="space-y-2">
           <div className="flex justify-between text-xs">
-            <span className="text-slate-500">Model confidence</span>
-            <span className="font-medium text-slate-700">
+            <span className="text-muted-foreground">Model confidence</span>
+            <span className="font-medium text-card-foreground">
               {prediction.confidence}
             </span>
           </div>
 
           <Progress
             value={confidenceValue}
-            className="h-2 bg-slate-100 [&>div]:bg-emerald-500"
+            className="h-2 bg-muted [&>div]:bg-emerald-500"
           />
 
-          <p className="text-sm text-slate-500 mt-3 leading-snug">
+          <p className="text-sm text-muted-foreground mt-3 leading-snug">
             {prediction.prediction}
           </p>
 
-          <p className="text-xs text-emerald-600 font-medium mt-2">
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-2">
             Expected Conversion: {prediction.conversion_rate}
           </p>
         </div>
@@ -967,7 +985,6 @@ export default function ReportsPage({
         });
 
         setUserid(res.data.id);
-        
       } catch (err) {
         console.error(err);
       }
@@ -979,20 +996,20 @@ export default function ReportsPage({
   const handleshowUsername = async () => {
     try {
       const respoonse = await axios.get(`${baseurl}/admin/users/${userid}`);
-      
-    console.log("API Response:", respoonse.data);
-    console.log("Type:", typeof respoonse.data);
-      setUsername(respoonse.data);     
+
+      console.log("API Response:", respoonse.data);
+      console.log("Type:", typeof respoonse.data);
+      setUsername(respoonse.data);
     } catch (err) {
       console.error(err);
     }
   };
   useEffect(() => {
-    if(!userid){
+    if (!userid) {
       return;
     }
     handleshowUsername();
-  }, [userid])         
+  }, [userid]);
   const overview = [
     {
       icon: Users,
@@ -1176,9 +1193,9 @@ export default function ReportsPage({
   return (
     <>
       {/* ── Navbar ── */}
-      <header className="sticky top-0 z-10 flex min-h-14 shrink-0 flex-wrap items-center gap-2 sm:gap-3 border-b border-slate-200 bg-white/80 px-2 py-2 backdrop-blur-sm sm:px-4 sm:py-0">
+      <header className="sticky top-0 z-10 flex min-h-14 shrink-0 flex-wrap items-center gap-2 sm:gap-3 border-b border-border bg-background/80 px-2 py-2 backdrop-blur-sm sm:px-4 sm:py-0">
         <div className="flex items-center gap-2 shrink-0">
-          <SidebarTrigger className="text-slate-400 hover:text-slate-900" />
+          <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
           <Separator orientation="vertical" className="h-5 hidden sm:block" />
         </div>
 
@@ -1187,7 +1204,7 @@ export default function ReportsPage({
           size="sm"
           onClick={onRefresh}
           disabled={refreshing}
-          className="h-8 shrink-0 gap-1.5 border-slate-200 bg-white text-xs font-medium text-slate-600 shadow-sm hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-70 transition-colors"
+          className="h-8 shrink-0 gap-1.5 border-border bg-background text-xs font-medium text-muted-foreground shadow-sm hover:border-indigo-200 dark:hover:border-indigo-500/30 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-70 transition-colors"
         >
           <RefreshCw
             className={cn(
@@ -1200,24 +1217,24 @@ export default function ReportsPage({
           </span>
         </Button>
 
-        <div className="hidden md:flex max-w-sm flex-1 min-w-[120px] items-center gap-2 rounded-lg border border-transparent px-2.5 py-1.5 transition-colors focus-within:border-slate-200 focus-within:bg-slate-50 hover:bg-slate-50">
-          <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+        <div className="hidden md:flex max-w-sm flex-1 min-w-[120px] items-center gap-2 rounded-lg border border-transparent px-2.5 py-1.5 transition-colors focus-within:border-border focus-within:bg-muted hover:bg-muted">
+          <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
           <input
             type="text"
             placeholder="Search reports..."
-            className="w-full text-sm text-slate-900 placeholder:text-slate-400 bg-transparent outline-none"
+            className="w-full text-sm text-foreground placeholder:text-muted-foreground bg-transparent outline-none"
           />
         </div>
 
         <div className="flex items-center gap-1 ml-auto shrink-0">
           <button
-            className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             onClick={() => router.push("/admin/Reminders")}
           >
             <Bell className="w-4 h-4" />
           </button>
           <button
-            className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            className="hidden sm:flex w-8 h-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             onClick={() => router.push("/admin/settings")}
           >
             <Settings className="w-4 h-4" />
@@ -1226,7 +1243,7 @@ export default function ReportsPage({
             orientation="vertical"
             className="h-5 mx-2 hidden sm:block"
           />
-          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0 ring-2 ring-white">
+          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0 ring-2 ring-background">
             {username ? username.slice(0, 2).toUpperCase() : "U"}
           </div>
         </div>
@@ -1235,15 +1252,15 @@ export default function ReportsPage({
       {/* ── Page content ── */}
       <div
         ref={reportRef}
-        className="min-h-[calc(100vh-3.5rem)] space-y-4 sm:space-y-6 bg-slate-50 p-3 sm:p-6"
+        className="min-h-[calc(100vh-3.5rem)] space-y-4 sm:space-y-6 bg-background p-3 sm:p-6"
       >
         {/* Heading */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
-            <h1 className="text-lg sm:text-[22px] font-semibold tracking-tight text-slate-900">
+            <h1 className="text-lg sm:text-[22px] font-semibold tracking-tight text-foreground">
               Reports
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               Understand your sales performance with AI insights.
             </p>
           </div>
@@ -1254,7 +1271,7 @@ export default function ReportsPage({
               id="report"
               onClick={exportPDF}
               disabled={isExportingPDF}
-              className="h-9 flex-1 sm:flex-none gap-1.5 border-slate-200 bg-white text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-70 transition-colors"
+              className="h-9 flex-1 sm:flex-none gap-1.5 border-border bg-background text-xs font-medium text-foreground shadow-sm hover:bg-muted disabled:opacity-70 transition-colors"
             >
               {isExportingPDF ? (
                 <>
@@ -1271,7 +1288,7 @@ export default function ReportsPage({
             <Button
               size="sm"
               onClick={exportExcel}
-              className="h-9 flex-1 sm:flex-none gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm"
+              className="h-9 flex-1 sm:flex-none gap-1.5 bg-indigo-600 hover:bg-indigo-500 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white shadow-sm"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               Export Excel
